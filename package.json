@@ -1,0 +1,17 @@
+{
+  "name": "invoice-processing",
+  "private": true,
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev:api": "pnpm --filter backend dev:api",
+    "dev:worker": "pnpm --filter backend dev:worker",
+    "dev:web": "pnpm --filter web dev",
+    "db:migrate": "pnpm --filter backend prisma:migrate",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint"
+  }
+}

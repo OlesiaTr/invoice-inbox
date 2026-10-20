@@ -1,0 +1,52 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // Supabase: DATABASE_URL goes through the transaction pooler, DIRECT_URL is a direct
+  // connection used for migrations and for LISTEN (which a transaction pooler can't hold).
+  directUrl = env("DIRECT_URL")
+}
+
+enum InvoiceStatus {
+  uploaded
+  processing
+  completed
+  failed
+}
+
+model Invoice {
+  id           String @id @default(uuid()) @db.Uuid
+  originalName String @map("original_name")
+  mimeType     String @map("mime_type")
+  sizeBytes    Int    @map("size_bytes")
+  storageKey   String @map("storage_key")
+  sha256       String
+
+  status              InvoiceStatus @default(uploaded)
+  attempts            Int           @default(0)
+  errorReason         String?       @map("error_reason")
+  processingStartedAt DateTime?     @map("processing_started_at") @db.Timestamptz(3)
+  completedAt         DateTime?     @map("completed_at") @db.Timestamptz(3)
+
+  rawText       String?  @map("raw_text")
+  extractedData Json?    @map("extracted_data")
+  warnings      String[] @default([])
+
+  // Promoted from extractedData for sorting, filtering and aggregation.
+  vendorName    String?   @map("vendor_name")
+  invoiceNumber String?   @map("invoice_number")
+  issueDate     DateTime? @map("issue_date") @db.Date
+  total         Decimal?  @db.Decimal(14, 2)
+  currency      String?
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([status])
+  @@index([sha256])
+  @@index([createdAt])
+  @@map("invoices")
+}
