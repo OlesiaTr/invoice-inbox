@@ -1,5 +1,5 @@
 import { QueryClient } from '@tanstack/react-query';
-import { invoiceKeys, patchInvoiceInLists, type InvoicesPage } from './api';
+import { invoiceKeys, patchInvoiceInLists, uploadInvoice, type InvoicesPage } from './api';
 
 const row = (id: string, status: 'uploaded' | 'processing') =>
   ({ id, status, originalName: `${id}.pdf` }) as InvoicesPage['items'][number];
@@ -25,5 +25,36 @@ describe('patchInvoiceInLists', () => {
     qc.setQueryData(invoiceKeys.list({}), page);
     patchInvoiceInLists(qc, 'zzz', { status: 'processing' });
     expect(qc.getQueryData<InvoicesPage>(invoiceKeys.list({}))!.items).toEqual(page.items);
+  });
+});
+
+describe('uploadInvoice', () => {
+  const json = (status: number, body: unknown) =>
+    new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('retries after a lost response with the same idempotency key', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new TypeError('Failed to fetch')) // e.g. API restarting
+      .mockResolvedValueOnce(new Response('<html>502</html>', { status: 502, headers: { 'content-type': 'text/html' } }))
+      .mockResolvedValueOnce(json(201, { invoice: { id: '1', originalName: 'a.pdf' }, duplicateOf: null }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const res = await uploadInvoice(new File(['%PDF-'], 'a.pdf'), { retryDelaysMs: [0, 0] });
+
+    expect(res.invoice.id).toBe('1');
+    const keys = fetchMock.mock.calls.map(([, init]) => (init as RequestInit & { headers: Record<string, string> }).headers['Idempotency-Key']);
+    expect(keys).toHaveLength(3);
+    expect(new Set(keys).size).toBe(1);
+  });
+
+  it('does not retry validation errors', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(json(400, { message: 'Only PDF, PNG, JPEG and WEBP files are supported' }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(uploadInvoice(new File(['x'], 'a.txt'), { retryDelaysMs: [0, 0] })).rejects.toThrow('Only PDF');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

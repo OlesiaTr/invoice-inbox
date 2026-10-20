@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Header,
+  Headers,
   Param,
   ParseUUIDPipe,
   Post,
@@ -25,11 +26,17 @@ export class InvoicesController {
   @Post()
   // Hard memory cap while buffering; the configurable business limit is checked in the service.
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 25 * 1024 * 1024, files: 1 } }))
-  async upload(@UploadedFile() file?: Express.Multer.File) {
+  async upload(
+    @UploadedFile() file?: Express.Multer.File,
+    @Headers('idempotency-key') idempotencyKey?: string,
+  ) {
     if (!file) throw new BadRequestException('Send the invoice as multipart field "file"');
+    if (idempotencyKey !== undefined && !/^[\w-]{8,100}$/.test(idempotencyKey)) {
+      throw new BadRequestException('Idempotency-Key must be 8–100 letters, digits, "-" or "_"');
+    }
     // Multer decodes the multipart filename as latin1; browsers send UTF-8.
     const originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
-    const { invoice, duplicateOf } = await this.invoices.upload({ buffer: file.buffer, originalName });
+    const { invoice, duplicateOf } = await this.invoices.upload({ buffer: file.buffer, originalName, idempotencyKey });
     return {
       invoice: toInvoiceModel(invoice),
       duplicateOf: duplicateOf && { id: duplicateOf.id, originalName: duplicateOf.originalName },

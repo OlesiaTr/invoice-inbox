@@ -139,6 +139,7 @@ Delivery is **at-least-once**, so every step is safe to repeat:
   - *Transient* (model timeout, invalid model output): the invoice goes back to `uploaded`, with backoff of 10 s and then 20 s via `pgmq.set_vt`. After 3 attempts it's `failed`.
 - **Poison messages** (read more times than we ever retry, i.e. the worker crashed before recording anything) go to `invoice_processing_dlq`, and the invoice is marked failed.
 - **Completing** the invoice and **acknowledging** the message happen in one transaction.
+- **Uploads are idempotent.** The browser sends an `Idempotency-Key` per file and retries automatically after network errors or 5xx. If an attempt was committed but its response got lost (e.g. the API restarted mid-request), the retry returns the invoice that already exists instead of creating a duplicate. A unique index settles concurrent retries.
 - **Graceful shutdown:** consumers stop before the DB connection closes, and in-flight jobs finish.
 
 ## AI
