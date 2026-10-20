@@ -18,6 +18,8 @@ export interface AssistantTool<A = Record<string, unknown>> {
    * action the user confirms with a click (enforced here in code, not by the prompt).
    */
   destructive: boolean;
+  /** Argument that must literally come from the user's message (never chosen by the model). */
+  userStatedArg?: string;
   run(args: A, invoices: InvoicesService): Promise<unknown>;
   /** For destructive tools: what exactly will happen, resolved to a concrete invoice. */
   preview?(args: A, invoices: InvoicesService): Promise<PendingActionPreview>;
@@ -139,6 +141,7 @@ export const ASSISTANT_TOOLS = [
     description:
       'Correct one extracted header field of a COMPLETED invoice to a value the user explicitly stated (e.g. "set the total to 120"). Line items cannot be edited and fields cannot be cleared. Requires the user to confirm in the UI.',
     destructive: true,
+    userStatedArg: 'value',
     schema: z.object({
       ref,
       field: z.enum(EDITABLE_FIELDS),

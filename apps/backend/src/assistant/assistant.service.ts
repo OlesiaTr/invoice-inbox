@@ -69,6 +69,7 @@ export class AssistantService {
     ];
     const actions: ToolActivity[] = [];
     const pendingActions: PendingAction[] = [];
+    const lastUserText = [...history].reverse().find((m) => m.role === 'user')?.content ?? '';
 
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
       const res = await this.llm.chat(messages, this.toolSpecs);
@@ -77,7 +78,7 @@ export class AssistantService {
       }
       messages.push({ role: 'assistant', content: res.content, toolCalls: res.toolCalls });
       for (const call of res.toolCalls) {
-        const result = await this.execute(call, actions, pendingActions);
+        const result = await this.execute(call, actions, pendingActions, lastUserText);
         messages.push({ role: 'tool', toolName: call.name, content: result });
       }
     }
@@ -89,7 +90,12 @@ export class AssistantService {
   }
 
   /** Runs one tool call and returns the text the model sees as its result. */
-  private async execute(call: ToolCall, actions: ToolActivity[], pending: PendingAction[]): Promise<string> {
+  private async execute(
+    call: ToolCall,
+    actions: ToolActivity[],
+    pending: PendingAction[],
+    lastUserText: string,
+  ): Promise<string> {
     const tool = this.tools.get(call.name) as AssistantTool | undefined;
     if (!tool) return `Error: unknown tool "${call.name}"`;
 
@@ -99,6 +105,11 @@ export class AssistantService {
     }
 
     try {
+      // Values for edits must come from the user, not the model: enforced, not just prompted.
+      const stated = tool.userStatedArg ? (parsed.data as Record<string, unknown>)[tool.userStatedArg] : undefined;
+      if (tool.userStatedArg && !userStatedValue(lastUserText, stated)) {
+        return `Error: the user did not state the value ${JSON.stringify(stated)}. Do not guess values: ask the user what the correct value is.`;
+      }
       if (tool.destructive) {
         const preview = await tool.preview!(parsed.data, this.invoices);
         pending.push({ id: randomUUID(), ...preview });
@@ -124,4 +135,30 @@ function describe(call: ToolCall): string {
     .map(([k, v]) => `${k}: ${String(v)}`)
     .join(', ');
   return args ? `${call.name} (${args})` : call.name;
+}
+
+/** Does the user's message contain this value? Numbers compare numerically ("1,200.00" = 1200). */
+export function userStatedValue(text: string, value: unknown): boolean {
+  if (typeof value === 'number') {
+    const numbers = text.match(/-?\d[\d,.\s]*\d|-?\d/g) ?? [];
+    return numbers.some((n) => {
+      const clean = n.replace(/[\s,]/g, (m) => (m === ',' && /,\d{1,2}$/.test(n) ? '.' : ''));
+      return Math.abs(Number(clean) - value) < 0.005;
+    });
+  }
+  if (typeof value === 'string') {
+    const norm = (x: string) => x.toLowerCase().replace(/\s+/g, ' ').trim();
+    if (norm(text).includes(norm(value))) return true;
+    // Dates arrive normalised (YYYY-MM-DD); accept any date in the text that parses to the same day.
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      const candidates = text.match(/\d{4}-\d{2}-\d{2}|\d{1,2}[./]\d{1,2}[./]\d{4}|[a-z]{3,9}\.? \d{1,2},? \d{4}|\d{1,2} [a-z]{3,9} \d{4}/gi) ?? [];
+      return candidates.some((c) => {
+        const dmy = c.match(/^(\d{1,2})[./](\d{1,2})[./](\d{4})$/);
+        const iso = dmy ? `${dmy[3]}-${dmy[2].padStart(2, '0')}-${dmy[1].padStart(2, '0')}` : c;
+        const t = Date.parse(/^\d{4}-\d{2}-\d{2}$/.test(iso) ? `${iso}T00:00:00Z` : `${iso} UTC`);
+        return !Number.isNaN(t) && new Date(t).toISOString().slice(0, 10) === value;
+      });
+    }
+  }
+  return false;
 }
