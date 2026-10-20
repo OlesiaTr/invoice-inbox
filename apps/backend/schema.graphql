@@ -1,0 +1,151 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+type ExtractedInvoice {
+  currency: String
+  customerName: String
+
+  """YYYY-MM-DD"""
+  dueDate: String
+  invoiceNumber: String
+
+  """YYYY-MM-DD"""
+  issueDate: String
+  lineItems: [LineItemModel!]!
+  subtotal: Float
+  tax: Float
+  total: Float
+  vendorAddress: String
+  vendorName: String
+}
+
+type Invoice {
+  """Processing attempts so far (including automatic retries)"""
+  attempts: Int!
+  completedAt: DateTime
+  createdAt: DateTime!
+  currency: String
+  errorReason: String
+  extractedData: ExtractedInvoice
+  id: ID!
+  invoiceNumber: String
+
+  """YYYY-MM-DD"""
+  issueDate: String
+  mimeType: String!
+  originalName: String!
+
+  """Text the AI read (PDF text layer or OCR), for debugging"""
+  rawText: String
+  sizeBytes: Int!
+  status: InvoiceStatus!
+  total: Float
+  updatedAt: DateTime!
+  vendorName: String
+  warnings: [String!]!
+}
+
+type InvoiceEvent {
+  id: ID
+  status: InvoiceStatus
+  type: InvoiceEventType!
+  updatedAt: DateTime
+}
+
+enum InvoiceEventType {
+  DELETE
+  INSERT
+  RESYNC
+  UPDATE
+}
+
+type InvoicePage {
+  items: [Invoice!]!
+  total: Int!
+}
+
+enum InvoiceSortField {
+  createdAt
+  issueDate
+  total
+  vendorName
+}
+
+enum InvoiceStatus {
+  completed
+  failed
+  processing
+  uploaded
+}
+
+input InvoicesFilter {
+  limit: Int
+  offset: Int
+  search: String
+  sortBy: InvoiceSortField
+  sortDir: SortDirection
+  status: InvoiceStatus
+}
+
+type LineItemModel {
+  amount: Float
+  description: String!
+  quantity: Float
+  unitPrice: Float
+}
+
+type Mutation {
+  deleteInvoice(id: ID!): Invoice!
+  retryAllFailedInvoices: RetryAllResult!
+  retryInvoice(id: ID!): Invoice!
+  updateInvoiceFields(id: ID!, input: UpdateInvoiceFieldsInput!): Invoice!
+}
+
+type Query {
+  invoice(id: ID!): Invoice!
+  invoices(filter: InvoicesFilter): InvoicePage!
+  statusCounts: StatusCounts!
+}
+
+type RetryAllResult {
+  retried: Int!
+}
+
+enum SortDirection {
+  asc
+  desc
+}
+
+type StatusCounts {
+  all: Int!
+  completed: Int!
+  failed: Int!
+  processing: Int!
+  uploaded: Int!
+}
+
+type Subscription {
+  """
+  Every invoice insert/update/delete, as announced by the database trigger
+  """
+  invoiceEvents: InvoiceEvent!
+}
+
+input UpdateInvoiceFieldsInput {
+  currency: String
+  customerName: String
+  dueDate: String
+  invoiceNumber: String
+  issueDate: String
+  subtotal: Float
+  tax: Float
+  total: Float
+  vendorAddress: String
+  vendorName: String
+}
