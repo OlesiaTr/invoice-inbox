@@ -32,7 +32,10 @@ describe('OllamaLlmClient', () => {
     reply = () => message({ role: 'assistant', content: '{"invoiceNumber":"INV-1","total":10}' });
     const client = new OllamaLlmClient(url, 'qwen2.5:7b', 5000);
 
-    await expect(client.extractInvoice('Invoice INV-1 total 10')).resolves.toEqual({ invoiceNumber: 'INV-1', total: 10 });
+    await expect(client.extractInvoice('Invoice INV-1 total 10')).resolves.toEqual({
+      invoiceNumber: 'INV-1',
+      total: 10,
+    });
     expect(lastBody.model).toBe('qwen2.5:7b');
     expect(lastBody.stream).toBe(false);
     expect(lastBody.format).toMatchObject({ type: 'object', required: expect.arrayContaining(['total']) });
@@ -68,7 +71,10 @@ describe('OllamaLlmClient', () => {
       type: 'function',
       function: { name: 'list_invoices', description: 'List', parameters: { type: 'object', properties: {} } },
     });
-    expect(lastBody.messages[1].tool_calls[0].function).toEqual({ name: 'get_stats', arguments: { groupBy: 'status' } });
+    expect(lastBody.messages[1].tool_calls[0].function).toEqual({
+      name: 'get_stats',
+      arguments: { groupBy: 'status' },
+    });
     expect(lastBody.messages[2]).toMatchObject({ role: 'tool', tool_name: 'get_stats' });
   });
 

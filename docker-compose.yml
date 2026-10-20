@@ -21,7 +21,7 @@ x-backend: &backend
   volumes:
     - files:/data/storage
   extra_hosts:
-    - "host.docker.internal:host-gateway"
+    - 'host.docker.internal:host-gateway'
   depends_on:
     migrate:
       condition: service_completed_successfully
@@ -34,21 +34,21 @@ services:
       POSTGRES_PASSWORD: invoices
       POSTGRES_DB: invoices
     ports:
-      - "5432:5432"
+      - '5432:5432'
     volumes:
       - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
       - ./infra/postgres/pgmq:/pgmq:ro
       - db-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U invoices -d invoices"]
+      test: ['CMD-SHELL', 'pg_isready -U invoices -d invoices']
       interval: 2s
       timeout: 3s
       retries: 30
 
   migrate:
     <<: *backend
-    restart: "no"
-    command: ["pnpm", "exec", "prisma", "migrate", "deploy"]
+    restart: 'no'
+    command: ['pnpm', 'exec', 'prisma', 'migrate', 'deploy']
     depends_on:
       db:
         condition: service_healthy
@@ -59,7 +59,7 @@ services:
       <<: *backend-env
       PROCESS_ROLE: api
     ports:
-      - "3000:3000"
+      - '3000:3000'
 
   worker:
     <<: *backend
@@ -74,17 +74,17 @@ services:
       dockerfile: apps/web/Dockerfile
     restart: unless-stopped
     ports:
-      - "8080:80"
+      - '8080:80'
     depends_on:
       - api
 
   ollama:
     image: ollama/ollama:0.12.6
-    profiles: ["ollama"]
+    profiles: ['ollama']
     volumes:
       - ollama-models:/root/.ollama
     ports:
-      - "11434:11434"
+      - '11434:11434'
 
 volumes:
   db-data:

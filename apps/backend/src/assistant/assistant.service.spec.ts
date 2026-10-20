@@ -1,8 +1,8 @@
 import { ConflictException } from '@nestjs/common';
-import { Invoice } from '@prisma/client';
+import { type Invoice } from '@prisma/client';
 import { TransientProcessingError } from '../invoices/domain/processing-errors';
-import { InvoicesService } from '../invoices/invoices.service';
-import { ChatMessage, ChatResult, LlmClient } from '../llm/llm-client';
+import { type InvoicesService } from '../invoices/invoices.service';
+import { type ChatMessage, type ChatResult, LlmClient } from '../llm/llm-client';
 import { AssistantService, userStatedValue } from './assistant.service';
 
 /** LLM double that replays a script of responses and records what it was sent. */
@@ -75,13 +75,20 @@ describe('AssistantService', () => {
 
     expect(invoices.delete).not.toHaveBeenCalled();
     expect(res.pendingActions).toEqual([
-      expect.objectContaining({ kind: 'delete_invoice', invoiceId: invoice.id, summary: 'Delete invoice INV-1 (Acme)' }),
+      expect.objectContaining({
+        kind: 'delete_invoice',
+        invoiceId: invoice.id,
+        summary: 'Delete invoice INV-1 (Acme)',
+      }),
     ]);
   });
 
   it('normalises the value of a proposed field edit for the confirmation card', async () => {
     const { service, invoices } = setup([
-      { content: '', toolCalls: [{ name: 'update_invoice_field', arguments: { ref: 'INV-1', field: 'total', value: '€1,200.00' } }] },
+      {
+        content: '',
+        toolCalls: [{ name: 'update_invoice_field', arguments: { ref: 'INV-1', field: 'total', value: '€1,200.00' } }],
+      },
     ]);
     const res = await service.chat(user('the total should be €1,200.00'));
 
@@ -96,7 +103,10 @@ describe('AssistantService', () => {
 
   it('refuses an edit whose value the user never stated', async () => {
     const { service, llm } = setup([
-      { content: '', toolCalls: [{ name: 'update_invoice_field', arguments: { ref: 'INV-1', field: 'total', value: 150.5 } }] },
+      {
+        content: '',
+        toolCalls: [{ name: 'update_invoice_field', arguments: { ref: 'INV-1', field: 'total', value: 150.5 } }],
+      },
     ]);
     const res = await service.chat(user("let's correct the sum of INV-1"));
 
@@ -114,7 +124,10 @@ describe('AssistantService', () => {
 
   it('does not let the assistant clear a field', async () => {
     const { service, llm } = setup([
-      { content: '', toolCalls: [{ name: 'update_invoice_field', arguments: { ref: 'INV-1', field: 'total', value: null } }] },
+      {
+        content: '',
+        toolCalls: [{ name: 'update_invoice_field', arguments: { ref: 'INV-1', field: 'total', value: null } }],
+      },
     ]);
     const res = await service.chat(user('fix the total'));
 
@@ -124,7 +137,10 @@ describe('AssistantService', () => {
 
   it('refuses a no-op edit instead of asking the user to confirm nothing', async () => {
     const { service, llm } = setup([
-      { content: '', toolCalls: [{ name: 'update_invoice_field', arguments: { ref: 'INV-1', field: 'total', value: 1000 } }] },
+      {
+        content: '',
+        toolCalls: [{ name: 'update_invoice_field', arguments: { ref: 'INV-1', field: 'total', value: 1000 } }],
+      },
     ]);
     const res = await service.chat(user('the total is 1000'));
 

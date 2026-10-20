@@ -1,5 +1,5 @@
 import { TransientProcessingError } from '../invoices/domain/processing-errors';
-import { ChatMessage, ChatResult, LlmClient, ToolCall } from './llm-client';
+import { type ChatMessage, type ChatResult, LlmClient, type ToolCall } from './llm-client';
 import { TOOL_CHECK_PROMPT } from './prompts';
 
 /**
@@ -12,7 +12,10 @@ export class MockLlmClient extends LlmClient {
     if (text.includes('SIMULATE_TRANSIENT_FAILURE')) {
       throw new TransientProcessingError('Simulated model timeout');
     }
-    const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    const lines = text
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter(Boolean);
     const amountOn = (re: RegExp) => {
       const line = [...lines].reverse().find((l) => re.test(l));
       return line ? parseAmount(line.replace(re, '')) : null;
@@ -90,8 +93,9 @@ function summarize(content: string): string {
     if (data && typeof data === 'object' && 'items' in data && Array.isArray(data.items)) {
       if (data.items.length === 0) return 'No invoices match.';
       return data.items
-        .map((i: Record<string, unknown>) =>
-          `- ${i.invoiceNumber ?? i.file} · ${i.status}${i.vendor ? ` · ${i.vendor}` : ''}${i.total != null ? ` · ${i.total} ${i.currency ?? ''}` : ''}`,
+        .map(
+          (i: Record<string, string | number | null | undefined>) =>
+            `- ${i.invoiceNumber ?? i.file} · ${i.status}${i.vendor ? ` · ${i.vendor}` : ''}${i.total != null ? ` · ${i.total} ${i.currency ?? ''}` : ''}`,
         )
         .join('\n');
     }

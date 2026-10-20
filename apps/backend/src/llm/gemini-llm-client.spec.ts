@@ -46,7 +46,14 @@ describe('GeminiLlmClient', () => {
       [
         { role: 'system', content: 'be nice' },
         { role: 'user', content: 'failed?' },
-        { role: 'assistant', content: '', toolCalls: [{ name: 'get_stats', arguments: {} }, { name: 'list_invoices', arguments: {} }] },
+        {
+          role: 'assistant',
+          content: '',
+          toolCalls: [
+            { name: 'get_stats', arguments: {} },
+            { name: 'list_invoices', arguments: {} },
+          ],
+        },
         { role: 'tool', toolName: 'get_stats', content: '{"a":1}' },
         { role: 'tool', toolName: 'list_invoices', content: '{"b":2}' },
       ],
@@ -54,7 +61,10 @@ describe('GeminiLlmClient', () => {
     );
 
     expect(res.toolCalls).toEqual([{ name: 'list_invoices', arguments: { status: 'failed' } }]);
-    expect(lastBody.tools[0].functionDeclarations[0]).toMatchObject({ name: 'list_invoices', parametersJsonSchema: { type: 'object' } });
+    expect(lastBody.tools[0].functionDeclarations[0]).toMatchObject({
+      name: 'list_invoices',
+      parametersJsonSchema: { type: 'object' },
+    });
     expect(lastBody.contents.map((c: { role: string }) => c.role)).toEqual(['user', 'model', 'user']);
     expect(lastBody.contents[2].parts).toHaveLength(2); // both results answer the same model turn
   });
@@ -69,7 +79,9 @@ describe('GeminiLlmClient', () => {
   it('retries an overloaded model, then falls back to the next one', async () => {
     const seen: string[] = [];
     reply = undefined;
-    const overloaded = { error: { code: 503, message: 'This model is currently experiencing high demand.', status: 'UNAVAILABLE' } };
+    const overloaded = {
+      error: { code: 503, message: 'This model is currently experiencing high demand.', status: 'UNAVAILABLE' },
+    };
     const ok = candidate([{ text: '{"invoiceNumber":"INV-9"}' }]);
     const original = server.listeners('request')[0] as (...a: unknown[]) => void;
     server.removeAllListeners('request');

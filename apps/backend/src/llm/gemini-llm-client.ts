@@ -1,7 +1,7 @@
 import { GoogleGenAI, type Content, type GenerateContentResponse } from '@google/genai';
 import { EXTRACTED_INVOICE_JSON_SCHEMA } from '../invoices/domain/invoice-data';
 import { TransientProcessingError, errorMessage } from '../invoices/domain/processing-errors';
-import { ChatMessage, ChatResult, LlmClient, ToolSpec } from './llm-client';
+import { type ChatMessage, type ChatResult, LlmClient, type ToolSpec } from './llm-client';
 import { EXTRACTION_SYSTEM_PROMPT, extractionUserPrompt } from './prompts';
 import { withTimeout } from './with-timeout';
 
@@ -22,7 +22,11 @@ export class GeminiLlmClient extends LlmClient {
     apiKey: string,
     model: string,
     private readonly timeoutMs: number,
-    { baseUrl, fallbackModels = [], retryDelayMs = 1500 }: { baseUrl?: string; fallbackModels?: string[]; retryDelayMs?: number } = {},
+    {
+      baseUrl,
+      fallbackModels = [],
+      retryDelayMs = 1500,
+    }: { baseUrl?: string; fallbackModels?: string[]; retryDelayMs?: number } = {},
   ) {
     super();
     this.models = [model, ...fallbackModels.filter((m) => m && m !== model)];
@@ -53,7 +57,10 @@ export class GeminiLlmClient extends LlmClient {
   }
 
   async chat(messages: ChatMessage[], tools: ToolSpec[]): Promise<ChatResult> {
-    const system = messages.filter((m) => m.role === 'system').map((m) => m.content).join('\n\n');
+    const system = messages
+      .filter((m) => m.role === 'system')
+      .map((m) => m.content)
+      .join('\n\n');
     const res = await this.call((model) =>
       this.ai.models.generateContent({
         model,
@@ -79,7 +86,7 @@ export class GeminiLlmClient extends LlmClient {
       content: parts.map((p) => p.text ?? '').join(''),
       toolCalls: (res.functionCalls ?? []).map((fc) => ({
         name: fc.name ?? '',
-        arguments: (fc.args ?? {}) as Record<string, unknown>,
+        arguments: fc.args ?? {},
       })),
     };
   }
@@ -106,7 +113,6 @@ export class GeminiLlmClient extends LlmClient {
       `Gemini is overloaded (tried ${this.models.join(', ')}): ${errorMessage(lastError)}`,
     );
   }
-
 }
 
 function isOverloaded(err: unknown): boolean {

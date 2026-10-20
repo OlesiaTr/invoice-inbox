@@ -1,8 +1,8 @@
 import { ConflictException } from '@nestjs/common';
-import { Invoice } from '@prisma/client';
+import { type Invoice } from '@prisma/client';
 import { z } from 'zod';
 import { EDITABLE_FIELDS, extractedInvoiceSchema } from '../invoices/domain/invoice-data';
-import { InvoicesService } from '../invoices/invoices.service';
+import { type InvoicesService } from '../invoices/invoices.service';
 
 /**
  * One tool registry, two "doors": the in-app assistant (LLM tool calling) and the MCP
@@ -36,10 +36,7 @@ export interface PendingActionPreview {
   value?: string | number | null;
 }
 
-const ref = z
-  .string()
-  .min(1)
-  .describe('Invoice id (UUID), invoice number (e.g. INV-2026-0042) or original file name');
+const ref = z.string().min(1).describe('Invoice id (UUID), invoice number (e.g. INV-2026-0042) or original file name');
 
 /**
  * What the model sees about an invoice. Raw OCR text is deliberately left out: it is the
@@ -160,11 +157,11 @@ export const ASSISTANT_TOOLS = [
     preview: async (a, invoices) => {
       const i = await invoices.findByRef(a.ref);
       // Normalise through the same schema the service uses, so the preview shows the real value.
-      const value = extractedInvoiceSchema.shape[a.field].parse(a.value) as string | number | null;
+      const value = extractedInvoiceSchema.shape[a.field].parse(a.value);
       if (i.status !== 'completed') {
         throw new ConflictException(`Only completed invoices can be edited (${label(i)} is ${i.status})`);
       }
-      const current = ((i.extractedData ?? {}) as Record<string, unknown>)[a.field] ?? null;
+      const current = ((i.extractedData ?? {}) as Record<string, string | number | null>)[a.field] ?? null;
       // A no-op edit would ask the user to confirm nothing; tell the model instead.
       if (current === value) {
         throw new ConflictException(

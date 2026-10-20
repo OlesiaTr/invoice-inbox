@@ -25,9 +25,13 @@ export function AccessCodeDialog() {
           <DialogTitle className="flex items-center gap-2">
             <KeyRound className="size-5 text-primary" /> Access code
           </DialogTitle>
-          <DialogDescription>This demo is protected. Enter the access code you received with the link.</DialogDescription>
+          <DialogDescription>
+            This demo is protected. Enter the access code you received with the link.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="flex gap-2">
+          {/* The dialog is blocking and has one field: focusing it is the expected behaviour. */}
+          {/* eslint-disable-next-line jsx-a11y/no-autofocus */}
           <Input autoFocus value={code} onChange={(e) => setCode(e.target.value)} placeholder="Access code" />
           <Button type="submit">Continue</Button>
         </form>

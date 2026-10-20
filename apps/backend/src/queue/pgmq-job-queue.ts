@@ -26,9 +26,7 @@ export class PgmqJobQueue extends JobQueue {
     const rows = await this.prisma.$queryRaw<PgmqRow[]>`
       SELECT msg_id, read_ct, message
       FROM pgmq.read_with_poll(${QUEUE_NAME}::text, ${visibilitySeconds}::int, ${max}::int, ${waitSeconds}::int, 250)`;
-    return rows.map(
-      (r): QueueMessage<InvoiceJob> => ({ id: r.msg_id, readCount: r.read_ct, payload: r.message }),
-    );
+    return rows.map((r): QueueMessage<InvoiceJob> => ({ id: r.msg_id, readCount: r.read_ct, payload: r.message }));
   }
 
   async delete(tx: Tx, messageId: bigint): Promise<void> {
