@@ -5,8 +5,8 @@ import { gql } from '@/shared/graphql';
 export type AssistantReply = AssistantChatMutation['assistantChat'];
 export type PendingAction = AssistantReply['pendingActions'][number];
 
-export function useAssistantChat() {
+export const useAssistantChat = () => {
   return useMutation({
     mutationFn: (messages: ChatMessageInput[]) => gql(AssistantChatDocument, { messages }).then((d) => d.assistantChat),
   });
-}
+};

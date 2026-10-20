@@ -1,5 +1,5 @@
 import { CircleAlert, ExternalLink, Pencil, RotateCcw, TriangleAlert } from 'lucide-react';
-import { type FormEvent } from 'react';
+import { type SubmitEvent } from 'react';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,7 @@ import { INVOICE_FIELDS, type FieldDescriptor } from './fields';
 import { StatusBadge } from './StatusBadge';
 import { useInvoiceFieldsForm } from './use-invoice-fields-form';
 
-export function InvoiceDetailSheet({ id, onClose }: { id?: string; onClose: () => void }) {
+export const InvoiceDetailSheet = ({ id, onClose }: { id?: string; onClose: () => void }) => {
   const { data: invoice, isLoading, error } = useInvoice(id);
   const retry = useRetryInvoice();
 
@@ -105,13 +105,13 @@ export function InvoiceDetailSheet({ id, onClose }: { id?: string; onClose: () =
       </SheetContent>
     </Sheet>
   );
-}
+};
 
-function ExtractedFields({ invoice }: { invoice: InvoiceDetail }) {
+const ExtractedFields = ({ invoice }: { invoice: InvoiceDetail }) => {
   const data = invoice.extractedData!;
   const { editing, draft, start, cancel, setField, save, isSaving } = useInvoiceFieldsForm(invoice);
 
-  const submit = (e: FormEvent) => {
+  const submit = (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     save({
       onSuccess: () => toast.success('Invoice updated'),
@@ -200,9 +200,9 @@ function ExtractedFields({ invoice }: { invoice: InvoiceDetail }) {
       )}
     </section>
   );
-}
+};
 
-function FilePreview({ invoice }: { invoice: InvoiceDetail }) {
+const FilePreview = ({ invoice }: { invoice: InvoiceDetail }) => {
   const url = invoiceFileUrl(invoice.id);
   return (
     <section className="space-y-2">
@@ -213,10 +213,10 @@ function FilePreview({ invoice }: { invoice: InvoiceDetail }) {
         </a>
       </div>
       {invoice.mimeType === 'application/pdf' ? (
-        <iframe src={url} title={invoice.originalName} className="h-[480px] w-full rounded-lg border border-border" />
+        <iframe src={url} title={invoice.originalName} className="h-120 w-full rounded-lg border border-border" />
       ) : (
         <img src={url} alt={invoice.originalName} className="w-full rounded-lg border border-border" />
       )}
     </section>
   );
-}
+};

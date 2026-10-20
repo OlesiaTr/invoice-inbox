@@ -8,7 +8,7 @@ import { useInvoiceLiveUpdates } from '@/features/invoices/live-updates';
 import { AccessCodeDialog } from './AccessCodeDialog';
 import { useTheme } from '@/shared/theme';
 
-export function AppLayout() {
+export const AppLayout = () => {
   useInvoiceLiveUpdates();
   const { theme, toggle } = useTheme();
   const search: { chat?: boolean } = useSearch({ strict: false });
@@ -62,4 +62,4 @@ export function AppLayout() {
       <Toaster position="bottom-right" richColors closeButton />
     </div>
   );
-}
+};

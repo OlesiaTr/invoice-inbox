@@ -30,39 +30,39 @@ export type InvoiceDetail = NonNullable<Awaited<ReturnType<typeof fetchInvoice>>
 const fetchInvoices = (filter: InvoicesFilter) => gql(GetInvoicesDocument, { filter }).then((d) => d.invoices);
 const fetchInvoice = (id: string) => gql(GetInvoiceDocument, { id }).then((d) => d.invoice);
 
-export function useInvoices(filter: InvoicesFilter) {
+export const useInvoices = (filter: InvoicesFilter) => {
   return useQuery({
     queryKey: invoiceKeys.list(filter),
     queryFn: () => fetchInvoices(filter),
     placeholderData: keepPreviousData,
   });
-}
+};
 
-export function useStatusCounts() {
+export const useStatusCounts = () => {
   return useQuery({
     queryKey: invoiceKeys.counts(),
     queryFn: () => gql(GetStatusCountsDocument).then((d) => d.statusCounts),
   });
-}
+};
 
-export function useInvoice(id: string | undefined) {
+export const useInvoice = (id: string | undefined) => {
   return useQuery({
     queryKey: invoiceKeys.detail(id ?? ''),
     queryFn: () => fetchInvoice(id!),
     enabled: !!id,
   });
-}
+};
 
 /**
  * Mutations only invalidate as a fallback: the database trigger → subscription
  * normally delivers the change first (see useInvoiceLiveUpdates).
  */
-function useInvalidateInvoices() {
+const useInvalidateInvoices = () => {
   const qc = useQueryClient();
   return () => qc.invalidateQueries({ queryKey: invoiceKeys.all });
-}
+};
 
-export function useRetryInvoice() {
+export const useRetryInvoice = () => {
   const qc = useQueryClient();
   const invalidate = useInvalidateInvoices();
   return useMutation({
@@ -79,31 +79,31 @@ export function useRetryInvoice() {
     },
     onSettled: invalidate,
   });
-}
+};
 
-export function useRetryAllFailed() {
+export const useRetryAllFailed = () => {
   const invalidate = useInvalidateInvoices();
   return useMutation({
     mutationFn: () => gql(RetryAllFailedInvoicesDocument).then((d) => d.retryAllFailedInvoices.retried),
     onSettled: invalidate,
   });
-}
+};
 
-export function useDeleteInvoice() {
+export const useDeleteInvoice = () => {
   const invalidate = useInvalidateInvoices();
   return useMutation({
     mutationFn: (id: string) => gql(DeleteInvoiceDocument, { id }),
     onSettled: invalidate,
   });
-}
+};
 
-export function useUpdateInvoiceFields() {
+export const useUpdateInvoiceFields = () => {
   const invalidate = useInvalidateInvoices();
   return useMutation({
     mutationFn: (v: { id: string; input: UpdateInvoiceFieldsInput }) => gql(UpdateInvoiceFieldsDocument, v),
     onSettled: invalidate,
   });
-}
+};
 
 export interface UploadResult {
   invoice: { id: string; originalName: string };
@@ -121,7 +121,7 @@ class RetryableUploadError extends Error {}
  * response got lost (e.g. the API restarted), the server returns that invoice instead of
  * creating a duplicate.
  */
-export async function uploadInvoice(file: File, { retryDelaysMs = [1000, 3000, 6000] } = {}): Promise<UploadResult> {
+export const uploadInvoice = async (file: File, { retryDelaysMs = [1000, 3000, 6000] } = {}): Promise<UploadResult> => {
   const idempotencyKey = crypto.randomUUID();
   for (let attempt = 0; ; attempt++) {
     try {
@@ -131,9 +131,9 @@ export async function uploadInvoice(file: File, { retryDelaysMs = [1000, 3000, 6
       await new Promise((r) => setTimeout(r, retryDelaysMs[attempt]));
     }
   }
-}
+};
 
-async function uploadOnce(file: File, idempotencyKey: string): Promise<UploadResult> {
+const uploadOnce = async (file: File, idempotencyKey: string): Promise<UploadResult> => {
   const body = new FormData();
   body.append('file', file);
   let res: Response;
@@ -157,19 +157,19 @@ async function uploadOnce(file: File, idempotencyKey: string): Promise<UploadRes
   const json = (await res.json()) as UploadResult & { message?: string | string[] };
   if (!res.ok) throw new Error(Array.isArray(json.message) ? json.message.join(', ') : json.message);
   return json;
-}
+};
 
-export function useUploadInvoice() {
+export const useUploadInvoice = () => {
   const invalidate = useInvalidateInvoices();
   return useMutation({ mutationFn: (file: File) => uploadInvoice(file), onSettled: invalidate });
-}
+};
 
-export function invoiceFileUrl(id: string): string {
+export const invoiceFileUrl = (id: string): string => {
   const code = authHeaders()['x-access-code'];
   return `${API_URL}/api/invoices/${id}/file${code ? `?access_code=${encodeURIComponent(code)}` : ''}`;
-}
+};
 
-export function patchInvoiceInLists(qc: ReturnType<typeof useQueryClient>, id: string, patch: Partial<InvoiceRow>) {
+export const patchInvoiceInLists = (qc: ReturnType<typeof useQueryClient>, id: string, patch: Partial<InvoiceRow>) => {
   qc.setQueriesData<InvoicesPage>(
     { queryKey: invoiceKeys.lists() },
     (page) =>
@@ -178,4 +178,4 @@ export function patchInvoiceInLists(qc: ReturnType<typeof useQueryClient>, id: s
         items: page.items.map((row) => (row.id === id ? { ...row, ...patch } : row)),
       },
   );
-}
+};

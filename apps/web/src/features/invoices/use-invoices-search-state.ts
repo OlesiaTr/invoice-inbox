@@ -10,7 +10,7 @@ const SEARCH_DEBOUNCE_MS = 300;
  * can't live there: the search box, which is debounced so typing doesn't push a history
  * entry (and a new query key) per keystroke.
  */
-export function useInvoicesSearchState() {
+export const useInvoicesSearchState = () => {
   const search = invoicesRoute.useSearch();
   const navigate = useNavigate({ from: invoicesRoute.fullPath });
 
@@ -58,4 +58,4 @@ export function useInvoicesSearchState() {
       offset: (page - 1) * PAGE_SIZE,
     },
   };
-}
+};

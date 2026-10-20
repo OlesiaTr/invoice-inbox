@@ -52,7 +52,7 @@ interface Props {
  * Pure presentation: sorting is server-side (manualSorting) and every action is reported
  * to the parent, which owns the mutations. That also keeps the column memo below stable.
  */
-export function InvoiceTable({
+export const InvoiceTable = ({
   rows,
   loading,
   refreshing,
@@ -62,7 +62,7 @@ export function InvoiceTable({
   onOpen,
   onRetry,
   onRequestDelete,
-}: Props) {
+}: Props) => {
   // Re-render on a timer so the "Uploaded" column's relative times don't freeze.
   useNow();
 
@@ -299,4 +299,4 @@ export function InvoiceTable({
       </Table>
     </div>
   );
-}
+};

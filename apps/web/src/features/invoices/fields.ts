@@ -31,16 +31,16 @@ export const INVOICE_FIELDS: readonly FieldDescriptor[] = [
 
 const BY_KEY = new Map(INVOICE_FIELDS.map((f) => [f.key, f]));
 
-export function fieldType(key: string): FieldType | undefined {
+export const fieldType = (key: string): FieldType | undefined => {
   return BY_KEY.get(key as FieldKey)?.type;
-}
+};
 
 /**
  * Coerces a form string or an assistant-proposed value into what the API expects for that
  * field. Empty means "clear it"; a numeric field that won't parse stays null rather than
  * being sent as NaN.
  */
-export function coerceFieldValue(key: string, value: string | number | null): string | number | null {
+export const coerceFieldValue = (key: string, value: string | number | null): string | number | null => {
   if (value === null) return null;
   if (typeof value === 'number') return Number.isFinite(value) ? value : null;
 
@@ -51,4 +51,4 @@ export function coerceFieldValue(key: string, value: string | number | null): st
   if (fieldType(key) !== 'number') return text;
   const n = Number(text);
   return Number.isFinite(n) ? n : null;
-}
+};

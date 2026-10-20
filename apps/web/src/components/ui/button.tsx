@@ -1,4 +1,4 @@
-import * as React from 'react';
+import { forwardRef, type ButtonHTMLAttributes } from 'react';
 import { Slot } from '@radix-ui/react-slot';
 import { cva, type VariantProps } from 'class-variance-authority';
 
@@ -11,19 +11,13 @@ const buttonVariants = cva(
       variant: {
         default: 'bg-primary text-white hover:bg-primaryemphasis',
         destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
-        outline:
-          'border border-primary text-primary bg-transparent hover:bg-primary hover:text-white',
-        outlinesecondary:
-          'border border-secondary text-secondary bg-transparent hover:bg-secondary hover:text-white',
-        outlinesuccess:
-          'border border-success bg-transparent hover:bg-success text-success hover:text-white',
-        outlinewarning:
-          'border border-warning bg-transparent hover:bg-warning text-warning hover:text-white',
+        outline: 'border border-primary text-primary bg-transparent hover:bg-primary hover:text-white',
+        outlinesecondary: 'border border-secondary text-secondary bg-transparent hover:bg-secondary hover:text-white',
+        outlinesuccess: 'border border-success bg-transparent hover:bg-success text-success hover:text-white',
+        outlinewarning: 'border border-warning bg-transparent hover:bg-warning text-warning hover:text-white',
         outlineinfo: 'border border-info bg-transparent hover:bg-info text-info hover:text-white',
-        outlineerror:
-          'border border-error bg-transparent hover:bg-error text-error hover:text-white',
-        outlinewhite:
-          'bg-transparent border border-white hover:bg-white text-white hover:text-primary',
+        outlineerror: 'border border-error bg-transparent hover:bg-error text-error hover:text-white',
+        outlinewhite: 'bg-transparent border border-white hover:bg-white text-white hover:text-primary',
         secondary: 'bg-secondary text-white hover:bg-secondaryemphasis',
         success: 'bg-success text-white hover:bg-successemphasis',
         warning: 'bg-warning text-white hover:bg-warningemphasis',
@@ -62,22 +56,14 @@ const buttonVariants = cva(
   },
 );
 
-export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
+export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> {
   asChild?: boolean;
 }
 
-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, shape, size, asChild = false, ...props }, ref) => {
     const Comp = asChild ? Slot : 'button';
-    return (
-      <Comp
-        className={cn(buttonVariants({ variant, size, className, shape }))}
-        ref={ref}
-        {...props}
-      />
-    );
+    return <Comp className={cn(buttonVariants({ variant, size, className, shape }))} ref={ref} {...props} />;
   },
 );
 Button.displayName = 'Button';

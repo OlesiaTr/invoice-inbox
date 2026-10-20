@@ -13,7 +13,7 @@ const ACCEPT = {
 };
 
 /** Each file is its own request: one bad file doesn't fail the batch, and each gets its own feedback. */
-export function UploadDropzone() {
+export const UploadDropzone = () => {
   const upload = useUploadInvoice();
 
   const onDrop = (files: File[]) => {
@@ -59,4 +59,4 @@ export function UploadDropzone() {
       <p className="text-sm text-muted-foreground">PDF, PNG, JPEG or WEBP · up to {MAX_UPLOAD_LABEL} each</p>
     </div>
   );
-}
+};
