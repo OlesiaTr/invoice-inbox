@@ -7,8 +7,11 @@ import { z } from 'zod';
 const amount = z.preprocess((v) => {
   if (typeof v === 'number') return Number.isFinite(v) ? v : null;
   if (typeof v === 'string') {
-    const n = Number(v.replace(/[^\d.-]/g, ''));
-    return v.trim() && Number.isFinite(n) ? n : null;
+    const digits = v.replace(/[^\d.-]/g, '');
+    // "n/a" must become null, not Number('') === 0.
+    if (!/\d/.test(digits)) return null;
+    const n = Number(digits);
+    return Number.isFinite(n) ? n : null;
   }
   return null;
 }, z.number().nullable());

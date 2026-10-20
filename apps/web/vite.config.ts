@@ -1,7 +1,7 @@
 import { fileURLToPath, URL } from 'node:url';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 
 const api = process.env.API_PROXY_TARGET ?? 'http://localhost:3000';
 
@@ -21,5 +21,6 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
+    globals: true,
   },
 });
