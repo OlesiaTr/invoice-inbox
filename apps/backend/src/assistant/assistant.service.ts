@@ -73,17 +73,23 @@ export class AssistantService {
     const pendingActions: PendingAction[] = [];
     const lastUserText = [...history].reverse().find((m) => m.role === 'user')?.content ?? '';
 
-    let checked = false;
+    // Set when we asked the model to double-check a tool-less answer; holds that answer.
+    let uncheckedReply: string | undefined;
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
       const res = await this.llm.chat(messages, this.toolSpecs);
       if (res.toolCalls.length === 0) {
-        // No tool at all this turn: likely answered from memory. Ask the model to check once.
-        if (!checked && actions.length === 0 && pendingActions.length === 0) {
-          checked = true;
+        // No tool at all this turn: maybe answered from memory. Ask the model to check once.
+        if (uncheckedReply === undefined && actions.length === 0 && pendingActions.length === 0) {
+          uncheckedReply = res.content;
           messages.push({ role: 'assistant', content: res.content }, { role: 'user', content: TOOL_CHECK_PROMPT });
           continue;
         }
-        return { reply: res.content.trim() || 'Done.', actions, pendingActions };
+        // The check found no tool was needed: keep the original answer (the model's
+        // second reply is only its verdict, e.g. "OK" — asking it to "repeat" was unreliable).
+        const reply = uncheckedReply !== undefined && actions.length === 0 && pendingActions.length === 0
+          ? uncheckedReply
+          : res.content;
+        return { reply: reply.trim() || 'Done.', actions, pendingActions };
       }
       messages.push({ role: 'assistant', content: res.content, toolCalls: res.toolCalls });
       for (const call of res.toolCalls) {

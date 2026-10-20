@@ -13,4 +13,10 @@ describe('Markdown', () => {
     expect(container.querySelector('img')).toBeNull();
     expect(container.textContent).toContain('<img src=x onerror=alert(1)>');
   });
+
+  it('shows links as plain text, never as clickable URLs', () => {
+    const { container } = render(<Markdown text={'- [acme.pdf](acme.pdf)\n- [click](https://evil.example)'} />);
+    expect(container.querySelector('a')).toBeNull();
+    expect(container.textContent).toBe('acme.pdfclick');
+  });
 });
