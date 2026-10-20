@@ -1,0 +1,5 @@
+mutation RetryInvoice($id: ID!) {
+  retryInvoice(id: $id) {
+    ...InvoiceRowFields
+  }
+}

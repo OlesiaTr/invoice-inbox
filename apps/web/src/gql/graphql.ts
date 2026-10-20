@@ -61,45 +61,14 @@ export type UpdateInvoiceFieldsInput = {
   vendorName?: string | null | undefined;
 };
 
+export type InvoiceRowFieldsFragment = { id: string, originalName: string, mimeType: string, status: InvoiceStatus, attempts: number, errorReason: string | null, warnings: Array<string>, vendorName: string | null, invoiceNumber: string | null, issueDate: string | null, total: number | null, currency: string | null, createdAt: string, updatedAt: string };
+
 export type AssistantChatMutationVariables = Exact<{
   messages: Array<ChatMessageInput> | ChatMessageInput;
 }>;
 
 
 export type AssistantChatMutation = { assistantChat: { reply: string, actions: Array<{ tool: string, ok: boolean, summary: string }>, pendingActions: Array<{ id: string, kind: PendingActionKind, invoiceId: string, summary: string, field: string | null, valueJson: string | null }> } };
-
-export type InvoiceRowFragment = { id: string, originalName: string, mimeType: string, status: InvoiceStatus, attempts: number, errorReason: string | null, warnings: Array<string>, vendorName: string | null, invoiceNumber: string | null, issueDate: string | null, total: number | null, currency: string | null, createdAt: string, updatedAt: string };
-
-export type InvoicesQueryVariables = Exact<{
-  filter?: InvoicesFilter | null | undefined;
-}>;
-
-
-export type InvoicesQuery = { invoices: { total: number, items: Array<{ id: string, originalName: string, mimeType: string, status: InvoiceStatus, attempts: number, errorReason: string | null, warnings: Array<string>, vendorName: string | null, invoiceNumber: string | null, issueDate: string | null, total: number | null, currency: string | null, createdAt: string, updatedAt: string }> } };
-
-export type StatusCountsQueryVariables = Exact<{ [key: string]: never; }>;
-
-
-export type StatusCountsQuery = { statusCounts: { all: number, uploaded: number, processing: number, completed: number, failed: number } };
-
-export type InvoiceQueryVariables = Exact<{
-  id: string | number;
-}>;
-
-
-export type InvoiceQuery = { invoice: { sizeBytes: number, completedAt: string | null, rawText: string | null, id: string, originalName: string, mimeType: string, status: InvoiceStatus, attempts: number, errorReason: string | null, warnings: Array<string>, vendorName: string | null, invoiceNumber: string | null, issueDate: string | null, total: number | null, currency: string | null, createdAt: string, updatedAt: string, extractedData: { invoiceNumber: string | null, vendorName: string | null, vendorAddress: string | null, customerName: string | null, issueDate: string | null, dueDate: string | null, currency: string | null, subtotal: number | null, tax: number | null, total: number | null, lineItems: Array<{ description: string, quantity: number | null, unitPrice: number | null, amount: number | null }> } | null } };
-
-export type RetryInvoiceMutationVariables = Exact<{
-  id: string | number;
-}>;
-
-
-export type RetryInvoiceMutation = { retryInvoice: { id: string, originalName: string, mimeType: string, status: InvoiceStatus, attempts: number, errorReason: string | null, warnings: Array<string>, vendorName: string | null, invoiceNumber: string | null, issueDate: string | null, total: number | null, currency: string | null, createdAt: string, updatedAt: string } };
-
-export type RetryAllFailedMutationVariables = Exact<{ [key: string]: never; }>;
-
-
-export type RetryAllFailedMutation = { retryAllFailedInvoices: { retried: number } };
 
 export type DeleteInvoiceMutationVariables = Exact<{
   id: string | number;
@@ -108,6 +77,18 @@ export type DeleteInvoiceMutationVariables = Exact<{
 
 export type DeleteInvoiceMutation = { deleteInvoice: { id: string } };
 
+export type RetryAllFailedInvoicesMutationVariables = Exact<{ [key: string]: never; }>;
+
+
+export type RetryAllFailedInvoicesMutation = { retryAllFailedInvoices: { retried: number } };
+
+export type RetryInvoiceMutationVariables = Exact<{
+  id: string | number;
+}>;
+
+
+export type RetryInvoiceMutation = { retryInvoice: { id: string, originalName: string, mimeType: string, status: InvoiceStatus, attempts: number, errorReason: string | null, warnings: Array<string>, vendorName: string | null, invoiceNumber: string | null, issueDate: string | null, total: number | null, currency: string | null, createdAt: string, updatedAt: string } };
+
 export type UpdateInvoiceFieldsMutationVariables = Exact<{
   id: string | number;
   input: UpdateInvoiceFieldsInput;
@@ -115,6 +96,25 @@ export type UpdateInvoiceFieldsMutationVariables = Exact<{
 
 
 export type UpdateInvoiceFieldsMutation = { updateInvoiceFields: { id: string } };
+
+export type GetInvoiceQueryVariables = Exact<{
+  id: string | number;
+}>;
+
+
+export type GetInvoiceQuery = { invoice: { sizeBytes: number, completedAt: string | null, rawText: string | null, id: string, originalName: string, mimeType: string, status: InvoiceStatus, attempts: number, errorReason: string | null, warnings: Array<string>, vendorName: string | null, invoiceNumber: string | null, issueDate: string | null, total: number | null, currency: string | null, createdAt: string, updatedAt: string, extractedData: { invoiceNumber: string | null, vendorName: string | null, vendorAddress: string | null, customerName: string | null, issueDate: string | null, dueDate: string | null, currency: string | null, subtotal: number | null, tax: number | null, total: number | null, lineItems: Array<{ description: string, quantity: number | null, unitPrice: number | null, amount: number | null }> } | null } };
+
+export type GetInvoicesQueryVariables = Exact<{
+  filter?: InvoicesFilter | null | undefined;
+}>;
+
+
+export type GetInvoicesQuery = { invoices: { total: number, items: Array<{ id: string, originalName: string, mimeType: string, status: InvoiceStatus, attempts: number, errorReason: string | null, warnings: Array<string>, vendorName: string | null, invoiceNumber: string | null, issueDate: string | null, total: number | null, currency: string | null, createdAt: string, updatedAt: string }> } };
+
+export type GetStatusCountsQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GetStatusCountsQuery = { statusCounts: { all: number, uploaded: number, processing: number, completed: number, failed: number } };
 
 export type InvoiceEventsSubscriptionVariables = Exact<{ [key: string]: never; }>;
 
@@ -139,8 +139,8 @@ export class TypedDocumentString<TResult, TVariables>
     return this.value;
   }
 }
-export const InvoiceRowFragmentDoc = new TypedDocumentString(`
-    fragment InvoiceRow on Invoice {
+export const InvoiceRowFieldsFragmentDoc = new TypedDocumentString(`
+    fragment InvoiceRowFields on Invoice {
   id
   originalName
   mimeType
@@ -156,7 +156,7 @@ export const InvoiceRowFragmentDoc = new TypedDocumentString(`
   createdAt
   updatedAt
 }
-    `, {"fragmentName":"InvoiceRow"}) as unknown as TypedDocumentString<InvoiceRowFragment, unknown>;
+    `, {"fragmentName":"InvoiceRowFields"}) as unknown as TypedDocumentString<InvoiceRowFieldsFragment, unknown>;
 export const AssistantChatDocument = new TypedDocumentString(`
     mutation AssistantChat($messages: [ChatMessageInput!]!) {
   assistantChat(messages: $messages) {
@@ -177,16 +177,27 @@ export const AssistantChatDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<AssistantChatMutation, AssistantChatMutationVariables>;
-export const InvoicesDocument = new TypedDocumentString(`
-    query Invoices($filter: InvoicesFilter) {
-  invoices(filter: $filter) {
-    total
-    items {
-      ...InvoiceRow
-    }
+export const DeleteInvoiceDocument = new TypedDocumentString(`
+    mutation DeleteInvoice($id: ID!) {
+  deleteInvoice(id: $id) {
+    id
   }
 }
-    fragment InvoiceRow on Invoice {
+    `) as unknown as TypedDocumentString<DeleteInvoiceMutation, DeleteInvoiceMutationVariables>;
+export const RetryAllFailedInvoicesDocument = new TypedDocumentString(`
+    mutation RetryAllFailedInvoices {
+  retryAllFailedInvoices {
+    retried
+  }
+}
+    `) as unknown as TypedDocumentString<RetryAllFailedInvoicesMutation, RetryAllFailedInvoicesMutationVariables>;
+export const RetryInvoiceDocument = new TypedDocumentString(`
+    mutation RetryInvoice($id: ID!) {
+  retryInvoice(id: $id) {
+    ...InvoiceRowFields
+  }
+}
+    fragment InvoiceRowFields on Invoice {
   id
   originalName
   mimeType
@@ -201,22 +212,18 @@ export const InvoicesDocument = new TypedDocumentString(`
   currency
   createdAt
   updatedAt
-}`) as unknown as TypedDocumentString<InvoicesQuery, InvoicesQueryVariables>;
-export const StatusCountsDocument = new TypedDocumentString(`
-    query StatusCounts {
-  statusCounts {
-    all
-    uploaded
-    processing
-    completed
-    failed
+}`) as unknown as TypedDocumentString<RetryInvoiceMutation, RetryInvoiceMutationVariables>;
+export const UpdateInvoiceFieldsDocument = new TypedDocumentString(`
+    mutation UpdateInvoiceFields($id: ID!, $input: UpdateInvoiceFieldsInput!) {
+  updateInvoiceFields(id: $id, input: $input) {
+    id
   }
 }
-    `) as unknown as TypedDocumentString<StatusCountsQuery, StatusCountsQueryVariables>;
-export const InvoiceDocument = new TypedDocumentString(`
-    query Invoice($id: ID!) {
+    `) as unknown as TypedDocumentString<UpdateInvoiceFieldsMutation, UpdateInvoiceFieldsMutationVariables>;
+export const GetInvoiceDocument = new TypedDocumentString(`
+    query GetInvoice($id: ID!) {
   invoice(id: $id) {
-    ...InvoiceRow
+    ...InvoiceRowFields
     sizeBytes
     completedAt
     rawText
@@ -240,7 +247,7 @@ export const InvoiceDocument = new TypedDocumentString(`
     }
   }
 }
-    fragment InvoiceRow on Invoice {
+    fragment InvoiceRowFields on Invoice {
   id
   originalName
   mimeType
@@ -255,14 +262,17 @@ export const InvoiceDocument = new TypedDocumentString(`
   currency
   createdAt
   updatedAt
-}`) as unknown as TypedDocumentString<InvoiceQuery, InvoiceQueryVariables>;
-export const RetryInvoiceDocument = new TypedDocumentString(`
-    mutation RetryInvoice($id: ID!) {
-  retryInvoice(id: $id) {
-    ...InvoiceRow
+}`) as unknown as TypedDocumentString<GetInvoiceQuery, GetInvoiceQueryVariables>;
+export const GetInvoicesDocument = new TypedDocumentString(`
+    query GetInvoices($filter: InvoicesFilter) {
+  invoices(filter: $filter) {
+    total
+    items {
+      ...InvoiceRowFields
+    }
   }
 }
-    fragment InvoiceRow on Invoice {
+    fragment InvoiceRowFields on Invoice {
   id
   originalName
   mimeType
@@ -277,28 +287,18 @@ export const RetryInvoiceDocument = new TypedDocumentString(`
   currency
   createdAt
   updatedAt
-}`) as unknown as TypedDocumentString<RetryInvoiceMutation, RetryInvoiceMutationVariables>;
-export const RetryAllFailedDocument = new TypedDocumentString(`
-    mutation RetryAllFailed {
-  retryAllFailedInvoices {
-    retried
+}`) as unknown as TypedDocumentString<GetInvoicesQuery, GetInvoicesQueryVariables>;
+export const GetStatusCountsDocument = new TypedDocumentString(`
+    query GetStatusCounts {
+  statusCounts {
+    all
+    uploaded
+    processing
+    completed
+    failed
   }
 }
-    `) as unknown as TypedDocumentString<RetryAllFailedMutation, RetryAllFailedMutationVariables>;
-export const DeleteInvoiceDocument = new TypedDocumentString(`
-    mutation DeleteInvoice($id: ID!) {
-  deleteInvoice(id: $id) {
-    id
-  }
-}
-    `) as unknown as TypedDocumentString<DeleteInvoiceMutation, DeleteInvoiceMutationVariables>;
-export const UpdateInvoiceFieldsDocument = new TypedDocumentString(`
-    mutation UpdateInvoiceFields($id: ID!, $input: UpdateInvoiceFieldsInput!) {
-  updateInvoiceFields(id: $id, input: $input) {
-    id
-  }
-}
-    `) as unknown as TypedDocumentString<UpdateInvoiceFieldsMutation, UpdateInvoiceFieldsMutationVariables>;
+    `) as unknown as TypedDocumentString<GetStatusCountsQuery, GetStatusCountsQueryVariables>;
 export const InvoiceEventsDocument = new TypedDocumentString(`
     subscription InvoiceEvents {
   invoiceEvents {

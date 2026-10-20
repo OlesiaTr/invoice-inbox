@@ -4,6 +4,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { AccessCodeRequiredError } from '@/shared/access-code';
+import { ErrorBoundary } from '@/shared/ErrorBoundary';
 import { ThemeProvider } from '@/shared/theme';
 import { router } from './router';
 import './styles.css';
@@ -24,7 +25,9 @@ createRoot(document.getElementById('root')!).render(
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider delayDuration={200}>
-          <RouterProvider router={router} />
+          <ErrorBoundary>
+            <RouterProvider router={router} />
+          </ErrorBoundary>
         </TooltipProvider>
       </QueryClientProvider>
     </ThemeProvider>

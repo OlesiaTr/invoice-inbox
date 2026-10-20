@@ -1,112 +1,18 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { graphql } from '@/gql';
-import type { InvoicesFilter, UpdateInvoiceFieldsInput } from '@/gql/graphql';
+import {
+  DeleteInvoiceDocument,
+  GetInvoiceDocument,
+  GetInvoicesDocument,
+  GetStatusCountsDocument,
+  RetryAllFailedInvoicesDocument,
+  RetryInvoiceDocument,
+  UpdateInvoiceFieldsDocument,
+  type InvoicesFilter,
+  type UpdateInvoiceFieldsInput,
+} from '@/gql/graphql';
 import { AccessCodeRequiredError, markAccessCodeRequired } from '@/shared/access-code';
 import { API_URL } from '@/shared/config';
 import { authHeaders, gql } from '@/shared/graphql';
-
-export const InvoiceRowFields = graphql(`
-  fragment InvoiceRow on Invoice {
-    id
-    originalName
-    mimeType
-    status
-    attempts
-    errorReason
-    warnings
-    vendorName
-    invoiceNumber
-    issueDate
-    total
-    currency
-    createdAt
-    updatedAt
-  }
-`);
-
-const InvoicesQuery = graphql(`
-  query Invoices($filter: InvoicesFilter) {
-    invoices(filter: $filter) {
-      total
-      items {
-        ...InvoiceRow
-      }
-    }
-  }
-`);
-
-const StatusCountsQuery = graphql(`
-  query StatusCounts {
-    statusCounts {
-      all
-      uploaded
-      processing
-      completed
-      failed
-    }
-  }
-`);
-
-const InvoiceQuery = graphql(`
-  query Invoice($id: ID!) {
-    invoice(id: $id) {
-      ...InvoiceRow
-      sizeBytes
-      completedAt
-      rawText
-      extractedData {
-        invoiceNumber
-        vendorName
-        vendorAddress
-        customerName
-        issueDate
-        dueDate
-        currency
-        subtotal
-        tax
-        total
-        lineItems {
-          description
-          quantity
-          unitPrice
-          amount
-        }
-      }
-    }
-  }
-`);
-
-const RetryInvoiceMutation = graphql(`
-  mutation RetryInvoice($id: ID!) {
-    retryInvoice(id: $id) {
-      ...InvoiceRow
-    }
-  }
-`);
-
-const RetryAllFailedMutation = graphql(`
-  mutation RetryAllFailed {
-    retryAllFailedInvoices {
-      retried
-    }
-  }
-`);
-
-const DeleteInvoiceMutation = graphql(`
-  mutation DeleteInvoice($id: ID!) {
-    deleteInvoice(id: $id) {
-      id
-    }
-  }
-`);
-
-const UpdateInvoiceFieldsMutation = graphql(`
-  mutation UpdateInvoiceFields($id: ID!, $input: UpdateInvoiceFieldsInput!) {
-    updateInvoiceFields(id: $id, input: $input) {
-      id
-    }
-  }
-`);
 
 /** Query keys: lists are keyed by their filter, so one event can patch every cached list. */
 export const invoiceKeys = {
@@ -121,8 +27,8 @@ export type InvoicesPage = Awaited<ReturnType<typeof fetchInvoices>>;
 export type InvoiceRow = InvoicesPage['items'][number];
 export type InvoiceDetail = NonNullable<Awaited<ReturnType<typeof fetchInvoice>>>;
 
-const fetchInvoices = (filter: InvoicesFilter) => gql(InvoicesQuery, { filter }).then((d) => d.invoices);
-const fetchInvoice = (id: string) => gql(InvoiceQuery, { id }).then((d) => d.invoice);
+const fetchInvoices = (filter: InvoicesFilter) => gql(GetInvoicesDocument, { filter }).then((d) => d.invoices);
+const fetchInvoice = (id: string) => gql(GetInvoiceDocument, { id }).then((d) => d.invoice);
 
 export function useInvoices(filter: InvoicesFilter) {
   return useQuery({
@@ -135,7 +41,7 @@ export function useInvoices(filter: InvoicesFilter) {
 export function useStatusCounts() {
   return useQuery({
     queryKey: invoiceKeys.counts(),
-    queryFn: () => gql(StatusCountsQuery).then((d) => d.statusCounts),
+    queryFn: () => gql(GetStatusCountsDocument).then((d) => d.statusCounts),
   });
 }
 
@@ -160,7 +66,7 @@ export function useRetryInvoice() {
   const qc = useQueryClient();
   const invalidate = useInvalidateInvoices();
   return useMutation({
-    mutationFn: (id: string) => gql(RetryInvoiceMutation, { id }).then((d) => d.retryInvoice),
+    mutationFn: (id: string) => gql(RetryInvoiceDocument, { id }).then((d) => d.retryInvoice),
     // Optimistic: the row flips to "uploaded" immediately; rolled back if the server refuses.
     onMutate: async (id) => {
       await qc.cancelQueries({ queryKey: invoiceKeys.lists() });
@@ -178,7 +84,7 @@ export function useRetryInvoice() {
 export function useRetryAllFailed() {
   const invalidate = useInvalidateInvoices();
   return useMutation({
-    mutationFn: () => gql(RetryAllFailedMutation).then((d) => d.retryAllFailedInvoices.retried),
+    mutationFn: () => gql(RetryAllFailedInvoicesDocument).then((d) => d.retryAllFailedInvoices.retried),
     onSettled: invalidate,
   });
 }
@@ -186,7 +92,7 @@ export function useRetryAllFailed() {
 export function useDeleteInvoice() {
   const invalidate = useInvalidateInvoices();
   return useMutation({
-    mutationFn: (id: string) => gql(DeleteInvoiceMutation, { id }),
+    mutationFn: (id: string) => gql(DeleteInvoiceDocument, { id }),
     onSettled: invalidate,
   });
 }
@@ -194,7 +100,7 @@ export function useDeleteInvoice() {
 export function useUpdateInvoiceFields() {
   const invalidate = useInvalidateInvoices();
   return useMutation({
-    mutationFn: (v: { id: string; input: UpdateInvoiceFieldsInput }) => gql(UpdateInvoiceFieldsMutation, v),
+    mutationFn: (v: { id: string; input: UpdateInvoiceFieldsInput }) => gql(UpdateInvoiceFieldsDocument, v),
     onSettled: invalidate,
   });
 }

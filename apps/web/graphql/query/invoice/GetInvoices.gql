@@ -1,0 +1,8 @@
+query GetInvoices($filter: InvoicesFilter) {
+  invoices(filter: $filter) {
+    total
+    items {
+      ...InvoiceRowFields
+    }
+  }
+}

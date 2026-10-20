@@ -1,0 +1,9 @@
+query GetStatusCounts {
+  statusCounts {
+    all
+    uploaded
+    processing
+    completed
+    failed
+  }
+}

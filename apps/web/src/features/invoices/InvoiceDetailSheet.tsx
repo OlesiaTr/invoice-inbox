@@ -1,5 +1,5 @@
 import { CircleAlert, ExternalLink, Pencil, RotateCcw, TriangleAlert } from 'lucide-react';
-import { useEffect, useState, type FormEvent } from 'react';
+import { type FormEvent } from 'react';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -8,11 +8,12 @@ import { Label } from '@/components/ui/label';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import type { UpdateInvoiceFieldsInput } from '@/gql/graphql';
 import { CopyButton } from '@/shared/CopyButton';
 import { formatDate, formatMoney } from '@/shared/format';
-import { invoiceFileUrl, useInvoice, useRetryInvoice, useUpdateInvoiceFields, type InvoiceDetail } from './api';
+import { invoiceFileUrl, useInvoice, useRetryInvoice, type InvoiceDetail } from './api';
+import { INVOICE_FIELDS, type FieldDescriptor } from './fields';
 import { StatusBadge } from './StatusBadge';
+import { useInvoiceFieldsForm } from './use-invoice-fields-form';
 
 export function InvoiceDetailSheet({ id, onClose }: { id?: string; onClose: () => void }) {
   const { data: invoice, isLoading, error } = useInvoice(id);
@@ -33,7 +34,9 @@ export function InvoiceDetailSheet({ id, onClose }: { id?: string; onClose: () =
                   <StatusBadge status={invoice.status} />
                   <span className="truncate">{invoice.originalName}</span>
                   <span>· {(invoice.sizeBytes / 1024).toFixed(0)} KB</span>
-                  <span>· {invoice.attempts} attempt{invoice.attempts === 1 ? '' : 's'}</span>
+                  <span>
+                    · {invoice.attempts} attempt{invoice.attempts === 1 ? '' : 's'}
+                  </span>
                 </>
               )}
             </div>
@@ -104,59 +107,19 @@ export function InvoiceDetailSheet({ id, onClose }: { id?: string; onClose: () =
   );
 }
 
-type FieldKey = keyof UpdateInvoiceFieldsInput;
-const FIELDS: { key: FieldKey; label: string; type: 'text' | 'date' | 'number' }[] = [
-  { key: 'vendorName', label: 'Vendor', type: 'text' },
-  { key: 'invoiceNumber', label: 'Invoice number', type: 'text' },
-  { key: 'customerName', label: 'Customer', type: 'text' },
-  { key: 'vendorAddress', label: 'Vendor address', type: 'text' },
-  { key: 'issueDate', label: 'Issue date', type: 'date' },
-  { key: 'dueDate', label: 'Due date', type: 'date' },
-  { key: 'currency', label: 'Currency', type: 'text' },
-  { key: 'subtotal', label: 'Subtotal', type: 'number' },
-  { key: 'tax', label: 'Tax', type: 'number' },
-  { key: 'total', label: 'Total', type: 'number' },
-];
-
 function ExtractedFields({ invoice }: { invoice: InvoiceDetail }) {
   const data = invoice.extractedData!;
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState<Record<string, string>>({});
-  const update = useUpdateInvoiceFields();
+  const { editing, draft, start, cancel, setField, save, isSaving } = useInvoiceFieldsForm(invoice);
 
-  useEffect(() => {
-    setEditing(false);
-  }, [invoice.id]);
-
-  const startEditing = () => {
-    setDraft(Object.fromEntries(FIELDS.map((f) => [f.key, data[f.key]?.toString() ?? ''])));
-    setEditing(true);
-  };
-
-  const save = (e: FormEvent) => {
+  const submit = (e: FormEvent) => {
     e.preventDefault();
-    // Send only what changed; empty means "clear the field".
-    const input: UpdateInvoiceFieldsInput = {};
-    for (const f of FIELDS) {
-      const before = data[f.key]?.toString() ?? '';
-      const after = draft[f.key]?.trim() ?? '';
-      if (before === after) continue;
-      (input as Record<string, unknown>)[f.key] = after === '' ? null : f.type === 'number' ? Number(after) : after;
-    }
-    if (Object.keys(input).length === 0) return setEditing(false);
-    update.mutate(
-      { id: invoice.id, input },
-      {
-        onSuccess: () => {
-          toast.success('Invoice updated');
-          setEditing(false);
-        },
-        onError: (err) => toast.error(err.message),
-      },
-    );
+    save({
+      onSuccess: () => toast.success('Invoice updated'),
+      onError: (message) => toast.error(message),
+    });
   };
 
-  const display = (f: (typeof FIELDS)[number]) => {
+  const display = (f: FieldDescriptor) => {
     const v = data[f.key];
     if (v == null || v === '') return <span className="text-muted-foreground">—</span>;
     if (f.type === 'date') return formatDate(v as string);
@@ -169,16 +132,16 @@ function ExtractedFields({ invoice }: { invoice: InvoiceDetail }) {
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-dark dark:text-white">Extracted data</h3>
         {!editing && invoice.status === 'completed' && (
-          <Button variant="ghostprimary" size="sm" onClick={startEditing}>
+          <Button variant="ghostprimary" size="sm" onClick={start}>
             <Pencil /> Edit
           </Button>
         )}
       </div>
 
       {editing ? (
-        <form onSubmit={save} className="space-y-4">
+        <form onSubmit={submit} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
-            {FIELDS.map((f) => (
+            {INVOICE_FIELDS.map((f) => (
               <div key={f.key}>
                 <Label htmlFor={f.key}>{f.label}</Label>
                 <Input
@@ -186,23 +149,23 @@ function ExtractedFields({ invoice }: { invoice: InvoiceDetail }) {
                   type={f.type}
                   step={f.type === 'number' ? '0.01' : undefined}
                   value={draft[f.key] ?? ''}
-                  onChange={(e) => setDraft((d) => ({ ...d, [f.key]: e.target.value }))}
+                  onChange={(e) => setField(f.key, e.target.value)}
                 />
               </div>
             ))}
           </div>
           <div className="flex gap-2">
-            <Button type="submit" disabled={update.isPending}>
+            <Button type="submit" disabled={isSaving}>
               Save
             </Button>
-            <Button type="button" variant="ghost" onClick={() => setEditing(false)}>
+            <Button type="button" variant="ghost" onClick={cancel}>
               Cancel
             </Button>
           </div>
         </form>
       ) : (
         <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
-          {FIELDS.map((f) => (
+          {INVOICE_FIELDS.map((f) => (
             <div key={f.key} className="min-w-0">
               <dt className="text-xs text-muted-foreground">{f.label}</dt>
               <dd className="truncate text-sm font-medium text-dark dark:text-white">{display(f)}</dd>
