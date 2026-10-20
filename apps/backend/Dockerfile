@@ -14,7 +14,8 @@ WORKDIR /app/apps/backend
 RUN pnpm exec prisma generate && pnpm build
 
 ENV NODE_ENV=production
-# The same image runs the API, the worker or both (PROCESS_ROLE picks the entry point).
+# The same image runs the API, the worker or both (PROCESS_ROLE = api | worker | all).
+# MIGRATE_ON_START=true is for single-service hosting (the demo); compose runs a migrate service.
 ENV PROCESS_ROLE=api
 EXPOSE 3000
-CMD ["sh", "-c", "exec node dist/${PROCESS_ROLE}.main.js"]
+CMD ["sh", "-c", "if [ \"$MIGRATE_ON_START\" = true ]; then pnpm exec prisma migrate deploy; fi && exec node dist/${PROCESS_ROLE}.main.js"]
