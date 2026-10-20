@@ -1,0 +1,16 @@
+fragment InvoiceRowFields on Invoice {
+  id
+  originalName
+  mimeType
+  status
+  attempts
+  errorReason
+  warnings
+  vendorName
+  invoiceNumber
+  issueDate
+  total
+  currency
+  createdAt
+  updatedAt
+}

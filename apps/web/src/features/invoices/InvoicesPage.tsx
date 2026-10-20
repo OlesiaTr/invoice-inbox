@@ -1,20 +1,18 @@
-import { useNavigate } from '@tanstack/react-router';
 import { RotateCcw, Search } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import type { InvoiceStatus } from '@/gql/graphql';
+import type { InvoiceSortField, InvoiceStatus, SortDirection } from '@/gql/graphql';
 import { cn } from '@/lib/utils';
-import { invoicesRoute, type InvoicesSearch } from '@/router';
-import { useInvoices, useRetryAllFailed, useStatusCounts } from './api';
+import { useDeleteInvoice, useInvoices, useRetryAllFailed, useRetryInvoice, useStatusCounts } from './api';
+import { ConfirmDeleteDialog } from './ConfirmDeleteDialog';
 import { InvoiceDetailSheet } from './InvoiceDetailSheet';
 import { InvoiceTable } from './InvoiceTable';
 import { STATUS_LABELS } from './StatusBadge';
 import { UploadDropzone } from './UploadDropzone';
-
-const PAGE_SIZE = 20;
+import { PAGE_SIZE, useInvoicesSearchState } from './use-invoices-search-state';
 
 const TABS: { status?: InvoiceStatus; label: string; tone: string }[] = [
   { label: 'All', tone: 'bg-lightprimary text-primary' },
@@ -25,31 +23,37 @@ const TABS: { status?: InvoiceStatus; label: string; tone: string }[] = [
 ];
 
 export function InvoicesPage() {
-  const search = invoicesRoute.useSearch();
-  const navigate = useNavigate({ from: invoicesRoute.fullPath });
-  const setSearch = (patch: Partial<InvoicesSearch>) =>
-    navigate({ search: (s) => ({ ...s, ...patch }), replace: true });
-
-  const page = search.page ?? 1;
-  const { data, isLoading, isFetching, error } = useInvoices({
-    status: search.status,
-    search: search.q,
-    sortBy: search.sort,
-    sortDir: search.dir,
-    limit: PAGE_SIZE,
-    offset: (page - 1) * PAGE_SIZE,
-  });
+  const { search, setSearch, queryInput, setQueryInput, page, filter } = useInvoicesSearchState();
+  const { data, isLoading, isFetching, error } = useInvoices(filter);
   const counts = useStatusCounts().data;
   const retryAll = useRetryAllFailed();
+  const retry = useRetryInvoice();
+  const remove = useDeleteInvoice();
 
-  // Debounce typing into the URL (and therefore into the query key).
-  const [q, setQ] = useState(search.q ?? '');
-  useEffect(() => {
-    const t = setTimeout(() => {
-      if ((search.q ?? '') !== q) setSearch({ q: q || undefined, page: undefined });
-    }, 300);
-    return () => clearTimeout(t);
-  }, [q]);
+  // Deleting asks first; the row only reports intent, this owns the pending target.
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
+
+  // Stable identities: InvoiceTable memoises its column definitions on these, so a new
+  // closure per render would throw that memo away every time.
+  const openInvoice = useCallback((id: string) => setSearch({ invoice: id }), [setSearch]);
+  const requestDelete = useCallback((id: string, name: string) => setPendingDelete({ id, name }), []);
+  const retryInvoice = useCallback(
+    (id: string) => retry.mutate(id, { onError: (e) => toast.error(e.message) }),
+    [retry],
+  );
+  const changeSort = useCallback(
+    (by: InvoiceSortField, dir: SortDirection) => setSearch({ sort: by, dir, page: undefined }),
+    [setSearch],
+  );
+
+  const confirmDelete = () => {
+    if (!pendingDelete) return;
+    remove.mutate(pendingDelete.id, {
+      onSuccess: () => toast.success('Invoice deleted'),
+      onError: (e) => toast.error(e.message),
+    });
+    setPendingDelete(null);
+  };
 
   const totalPages = Math.max(1, Math.ceil((data?.total ?? 0) / PAGE_SIZE));
 
@@ -106,8 +110,8 @@ export function InvoicesPage() {
             <div className="relative w-full lg:w-72">
               <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
+                value={queryInput}
+                onChange={(e) => setQueryInput(e.target.value)}
                 placeholder="Search file, vendor, number…"
                 className="pl-9"
                 aria-label="Search invoices"
@@ -122,8 +126,10 @@ export function InvoicesPage() {
           error={error}
           refreshing={isFetching && !isLoading}
           sort={{ by: search.sort ?? 'createdAt', dir: search.dir ?? 'desc' }}
-          onSortChange={(by, dir) => setSearch({ sort: by, dir, page: undefined })}
-          onOpen={(id) => setSearch({ invoice: id })}
+          onSortChange={changeSort}
+          onOpen={openInvoice}
+          onRetry={retryInvoice}
+          onRequestDelete={requestDelete}
         />
 
         <div className="flex items-center justify-between border-t border-border px-4 py-3 text-sm text-muted-foreground">
@@ -148,6 +154,13 @@ export function InvoicesPage() {
       </Card>
 
       <InvoiceDetailSheet id={search.invoice} onClose={() => setSearch({ invoice: undefined })} />
+
+      <ConfirmDeleteDialog
+        invoiceName={pendingDelete?.name}
+        busy={remove.isPending}
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   );
 }

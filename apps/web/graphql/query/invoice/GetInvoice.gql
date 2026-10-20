@@ -1,0 +1,26 @@
+query GetInvoice($id: ID!) {
+  invoice(id: $id) {
+    ...InvoiceRowFields
+    sizeBytes
+    completedAt
+    rawText
+    extractedData {
+      invoiceNumber
+      vendorName
+      vendorAddress
+      customerName
+      issueDate
+      dueDate
+      currency
+      subtotal
+      tax
+      total
+      lineItems {
+        description
+        quantity
+        unitPrice
+        amount
+      }
+    }
+  }
+}

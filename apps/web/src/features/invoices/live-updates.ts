@@ -1,21 +1,9 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
-import { graphql } from '@/gql';
-import type { InvoiceEventsSubscription } from '@/gql/graphql';
+import { InvoiceEventsDocument, type InvoiceEventsSubscription } from '@/gql/graphql';
 import { onWsConnected, wsClient } from '@/shared/ws';
 import { invoiceKeys, patchInvoiceInLists, type InvoicesPage } from './api';
-
-const InvoiceEventsSubscriptionDoc = graphql(`
-  subscription InvoiceEvents {
-    invoiceEvents {
-      type
-      id
-      status
-      updatedAt
-    }
-  }
-`);
 
 type InvoiceEvent = InvoiceEventsSubscription['invoiceEvents'];
 
@@ -56,7 +44,7 @@ export function useInvoiceLiveUpdates() {
     };
 
     const unsubscribe = wsClient().subscribe<{ invoiceEvents: InvoiceEvent }>(
-      { query: InvoiceEventsSubscriptionDoc.toString() },
+      { query: InvoiceEventsDocument.toString() },
       {
         next: ({ data }) => data && handle(data.invoiceEvents),
         error: () => undefined, // graphql-ws retries; the reconnect handler resyncs
