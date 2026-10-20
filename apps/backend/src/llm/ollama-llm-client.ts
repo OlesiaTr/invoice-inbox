@@ -47,7 +47,7 @@ export class OllamaLlmClient extends LlmClient {
           type: 'function',
           function: { name: t.name, description: t.description, parameters: t.parameters as never },
         })),
-        options: { temperature: 0.2 },
+        options: { temperature: 0 },
         stream: false,
       }),
     );

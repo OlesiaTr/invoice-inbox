@@ -196,6 +196,10 @@ function Chat({ onClose }: { onClose: () => void }) {
             >
               {m.role === 'assistant' ? <Markdown text={m.content} /> : m.content}
             </div>
+            {m.role === 'assistant' && m.actions?.length === 0 && !m.pending?.length && (
+              // Small models sometimes answer from memory; make unsourced answers visible.
+              <p className="text-xs text-muted-foreground">No data was looked up for this answer.</p>
+            )}
             {m.pending?.map((p) => (
               <PendingActionCard key={p.id} action={p} onStateChange={(s) => setPendingState(p.id, s)} />
             ))}
