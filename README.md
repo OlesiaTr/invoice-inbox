@@ -8,7 +8,7 @@ Upload invoices (PDF or image). They're processed asynchronously: a worker pulls
 
 **Stack:** TypeScript · NestJS · GraphQL (code-first, subscriptions) · Prisma · PostgreSQL + **pgmq** · React + Vite · TanStack Router/Query/Table · shadcn/ui · Tailwind · Ollama (local LLM) · MCP
 
-**Cost:** zero. No paid APIs; the AI runs locally.
+**Cost:** zero. No paid APIs; the AI runs locally. The public demo runs on free tiers ([docs/DEPLOY.md](docs/DEPLOY.md)).
 
 ---
 
