@@ -204,17 +204,48 @@ export interface UploadResult {
   duplicateOf: { id: string; originalName: string } | null;
 }
 
-/** File bytes go over REST (see backend InvoicesController for why). */
-export async function uploadInvoice(file: File): Promise<UploadResult> {
+/** Network failure or server temporarily down: the request may or may not have been processed. */
+class RetryableUploadError extends Error {}
+
+/**
+ * File bytes go over REST (see backend InvoicesController for why).
+ *
+ * The upload is retried automatically after network errors and 5xx responses — safe because
+ * every attempt carries the same Idempotency-Key: if an earlier attempt was committed but its
+ * response got lost (e.g. the API restarted), the server returns that invoice instead of
+ * creating a duplicate.
+ */
+export async function uploadInvoice(file: File, { retryDelaysMs = [1000, 3000, 6000] } = {}): Promise<UploadResult> {
+  const idempotencyKey = crypto.randomUUID();
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await uploadOnce(file, idempotencyKey);
+    } catch (err) {
+      if (!(err instanceof RetryableUploadError) || attempt >= retryDelaysMs.length) throw err;
+      await new Promise((r) => setTimeout(r, retryDelaysMs[attempt]));
+    }
+  }
+}
+
+async function uploadOnce(file: File, idempotencyKey: string): Promise<UploadResult> {
   const body = new FormData();
   body.append('file', file);
-  const res = await fetch(`${API_URL}/api/invoices`, { method: 'POST', body, headers: authHeaders() });
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/api/invoices`, {
+      method: 'POST',
+      body,
+      headers: { ...authHeaders(), 'Idempotency-Key': idempotencyKey },
+    });
+  } catch {
+    throw new RetryableUploadError('Could not reach the server');
+  }
   if (res.status === 401) {
     markAccessCodeRequired();
     throw new AccessCodeRequiredError();
   }
-  if (!res.headers.get('content-type')?.includes('json')) {
-    throw new Error(`The server is unavailable right now (HTTP ${res.status}). Try again in a moment.`);
+  if (res.status >= 500 || !res.headers.get('content-type')?.includes('json')) {
+    throw new RetryableUploadError(`The server is unavailable right now (HTTP ${res.status}). Try again in a moment.`);
   }
   const json = await res.json();
   if (!res.ok) throw new Error(Array.isArray(json.message) ? json.message.join(', ') : json.message);
@@ -223,7 +254,7 @@ export async function uploadInvoice(file: File): Promise<UploadResult> {
 
 export function useUploadInvoice() {
   const invalidate = useInvalidateInvoices();
-  return useMutation({ mutationFn: uploadInvoice, onSettled: invalidate });
+  return useMutation({ mutationFn: (file: File) => uploadInvoice(file), onSettled: invalidate });
 }
 
 export function invoiceFileUrl(id: string): string {

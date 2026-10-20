@@ -36,6 +36,27 @@ describe('upload', () => {
     enqueue.mockRestore();
   });
 
+  it('returns the first invoice when an upload is retried with the same idempotency key', async () => {
+    const file = { buffer: sample('acme-cloud-INV-2026-0042.pdf'), originalName: 'a.pdf', idempotencyKey: 'key-retry-1' };
+    const first = await h.invoices.upload(file);
+    const retry = await h.invoices.upload(file); // e.g. the first response was lost
+
+    expect(retry.invoice.id).toBe(first.invoice.id);
+    expect(await h.prisma.invoice.count()).toBe(1);
+    expect(await h.queued()).toHaveLength(1);
+    expect(h.storage.files.size).toBe(1);
+  });
+
+  it('creates one invoice when retries with the same key race each other', async () => {
+    const file = { buffer: sample('acme-cloud-INV-2026-0042.pdf'), originalName: 'a.pdf', idempotencyKey: 'key-race-1' };
+    const results = await Promise.all([h.invoices.upload(file), h.invoices.upload(file), h.invoices.upload(file)]);
+
+    expect(new Set(results.map((r) => r.invoice.id)).size).toBe(1);
+    expect(await h.prisma.invoice.count()).toBe(1);
+    expect(await h.queued()).toHaveLength(1);
+    expect(h.storage.files.size).toBe(1); // the losers' files were cleaned up
+  });
+
   it('flags duplicates by content hash', async () => {
     const first = await h.invoices.upload({ buffer: sample('acme-cloud-INV-2026-0042.pdf'), originalName: 'a.pdf' });
     const second = await h.invoices.upload({ buffer: sample('acme-cloud-INV-2026-0042.pdf'), originalName: 'copy.pdf' });

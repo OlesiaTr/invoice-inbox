@@ -25,6 +25,8 @@ import { assertTransition, InvalidTransitionError } from './domain/invoice-statu
 export interface UploadedFile {
   buffer: Buffer;
   originalName: string;
+  /** Same key on a retry → the first upload's invoice is returned, nothing is created twice. */
+  idempotencyKey?: string;
 }
 
 export type SortField = 'createdAt' | 'issueDate' | 'total' | 'vendorName';
@@ -58,6 +60,11 @@ export class InvoicesService {
   ) {}
 
   async upload(file: UploadedFile): Promise<{ invoice: Invoice; duplicateOf: Invoice | null }> {
+    // Replay: the first attempt committed but its response was lost (e.g. API restart).
+    if (file.idempotencyKey) {
+      const existing = await this.prisma.invoice.findUnique({ where: { idempotencyKey: file.idempotencyKey } });
+      if (existing) return { invoice: existing, duplicateOf: null };
+    }
     if (file.buffer.length === 0) throw new BadRequestException('The file is empty');
     if (file.buffer.length > this.config.MAX_UPLOAD_BYTES) {
       throw new PayloadTooLargeException(`Files up to ${this.config.MAX_UPLOAD_BYTES / 1024 / 1024} MB are accepted`);
@@ -83,6 +90,7 @@ export class InvoicesService {
             sizeBytes: file.buffer.length,
             storageKey,
             sha256,
+            idempotencyKey: file.idempotencyKey,
           },
         });
         await this.queue.enqueue(tx, { invoiceId: id });
@@ -91,6 +99,11 @@ export class InvoicesService {
       return { invoice, duplicateOf };
     } catch (err) {
       await this.storage.delete(storageKey).catch(() => undefined);
+      // Two attempts with the same key raced: the other one won, return its invoice.
+      if (file.idempotencyKey && err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        const existing = await this.prisma.invoice.findUnique({ where: { idempotencyKey: file.idempotencyKey } });
+        if (existing) return { invoice: existing, duplicateOf: null };
+      }
       throw err;
     }
   }
