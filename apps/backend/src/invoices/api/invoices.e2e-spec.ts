@@ -84,6 +84,18 @@ describe('invoices API (e2e)', () => {
     expect(res.body.correlationId).toBeDefined();
   });
 
+  // Regression: the row outliving its file surfaced as an unhandled 500, which rendered
+  // as raw error JSON inside the detail sheet's preview frame.
+  it('says so plainly when the invoice exists but its file is gone', async () => {
+    const { body } = await upload('e2e-missing-file-0008');
+    const storage = app.get<MemoryStorage>(FileStorage);
+    storage.files.clear();
+
+    const res = await request(app.getHttpServer()).get(`/api/invoices/${body.invoice.id}/file`);
+    expect(res.status).toBe(404);
+    expect(res.body.message).toMatch(/no longer available/);
+  });
+
   it('serves a 404 with a correlation id for an unknown invoice', async () => {
     const res = await request(app.getHttpServer()).get('/api/invoices/11111111-1111-1111-1111-111111111111/file');
     expect(res.status).toBe(404);

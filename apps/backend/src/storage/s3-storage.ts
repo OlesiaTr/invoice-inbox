@@ -1,5 +1,5 @@
 import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import { FileStorage } from './file-storage';
+import { FileNotFoundError, FileStorage } from './file-storage';
 
 export interface S3StorageOptions {
   endpoint?: string;
@@ -34,8 +34,16 @@ export class S3Storage extends FileStorage {
   }
 
   async get(key: string): Promise<Buffer> {
-    const res = await this.client.send(new GetObjectCommand({ Bucket: this.opts.bucket, Key: key }));
-    return Buffer.from(await res.Body!.transformToByteArray());
+    try {
+      const res = await this.client.send(new GetObjectCommand({ Bucket: this.opts.bucket, Key: key }));
+      return Buffer.from(await res.Body!.transformToByteArray());
+    } catch (err) {
+      // Providers differ: AWS sends NoSuchKey, some S3-compatible stores only a 404.
+      const name = (err as { name?: string }).name;
+      const status = (err as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode;
+      if (name === 'NoSuchKey' || name === 'NotFound' || status === 404) throw new FileNotFoundError(key);
+      throw err;
+    }
   }
 
   async delete(key: string): Promise<void> {
