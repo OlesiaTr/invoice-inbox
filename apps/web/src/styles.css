@@ -1,0 +1,137 @@
+/* Theme tokens adapted from the TailwindAdmin Pro template (shadcn/ui variables + its palette). */
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--white);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--white);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--error);
+  --color-destructive-foreground: var(--white);
+  --color-border: var(--border);
+  --color-input: var(--border);
+  --color-ring: var(--lightprimary);
+
+  --color-success: var(--success);
+  --color-info: var(--info);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --color-lightprimary: var(--lightprimary);
+  --color-lightsecondary: var(--lightsecondary);
+  --color-lightsuccess: var(--lightsuccess);
+  --color-lightinfo: var(--lightinfo);
+  --color-lightwarning: var(--lightwarning);
+  --color-lighterror: var(--lighterror);
+  --color-primaryemphasis: var(--primary-emphasis);
+  --color-secondaryemphasis: var(--secondary-emphasis);
+  --color-successemphasis: var(--success-emphasis);
+  --color-infoemphasis: var(--info-emphasis);
+  --color-warningemphasis: var(--warning-emphasis);
+  --color-erroremphasis: var(--error-emphasis);
+  --color-lightgray: var(--lightgray);
+  --color-bodytext: var(--bodytext);
+  --color-dark: var(--dark);
+  --color-link: var(--link);
+  --color-darkmuted: var(--muted);
+  --color-darkborder: var(--border);
+
+  --shadow-md: var(--shadow-md);
+  --shadow-dark-md: var(--shadow-dark-md);
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+}
+
+:root {
+  --radius: 10px;
+  --primary: #5d87ff;
+  --secondary: #49beff;
+  --info: #8754ec;
+  --success: #13deb9;
+  --warning: #f6b51e;
+  --error: #ef4444;
+  --white: #fff;
+  --dark: #1c2536;
+  --lightgray: #f6f9fc;
+  --bodytext: #5a6a85;
+  --link: #2a3547;
+
+  --background: #f4f7fb;
+  --foreground: var(--link);
+  --card: var(--white);
+  --card-foreground: var(--link);
+  --popover: var(--white);
+  --popover-foreground: var(--link);
+  --muted: #eff4fa;
+  --muted-foreground: #5a6a85;
+  --accent: var(--lightprimary);
+  --accent-foreground: var(--primary);
+  --border: #e5eaef;
+
+  --lightprimary: color-mix(in oklab, var(--primary) 12%, transparent);
+  --lightsecondary: color-mix(in oklab, var(--secondary) 12%, transparent);
+  --lightsuccess: color-mix(in oklab, var(--success) 14%, transparent);
+  --lightinfo: color-mix(in oklab, var(--info) 12%, transparent);
+  --lightwarning: color-mix(in oklab, var(--warning) 14%, transparent);
+  --lighterror: color-mix(in oklab, var(--error) 12%, transparent);
+  --primary-emphasis: color-mix(in oklab, var(--primary) 80%, black);
+  --secondary-emphasis: color-mix(in oklab, var(--secondary) 80%, black);
+  --success-emphasis: color-mix(in oklab, var(--success) 80%, black);
+  --info-emphasis: color-mix(in oklab, var(--info) 80%, black);
+  --warning-emphasis: color-mix(in oklab, var(--warning) 80%, black);
+  --error-emphasis: color-mix(in oklab, var(--error) 80%, black);
+
+  --shadow-md: rgb(145 158 171 / 30%) 0px 0px 2px 0px, rgb(145 158 171 / 12%) 0px 12px 24px -4px;
+  --shadow-dark-md: rgba(145, 158, 171, 0.3) 0px 0px 2px 0px, rgba(145, 158, 171, 0.02) 0px 12px 24px -4px;
+}
+
+.dark {
+  --background: #131a28;
+  --foreground: #e5ecf6;
+  --card: var(--dark);
+  --card-foreground: #e5ecf6;
+  --popover: var(--dark);
+  --popover-foreground: #e5ecf6;
+  --muted: #2a3851;
+  --muted-foreground: #7c8fac;
+  --border: #333f55;
+  --link: #7c8fac;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+}
+
+/* Template utility used by the copied components. */
+@utility border-ld {
+  @apply border-border;
+}
+
+@utility text-ld {
+  @apply text-link dark:text-foreground;
+}
+
+@utility bg-hover {
+  @apply hover:bg-lightprimary;
+}
