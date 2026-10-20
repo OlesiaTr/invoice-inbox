@@ -4,6 +4,8 @@ The user message contains raw text of ONE invoice, produced by PDF text extracti
 Rules:
 - Return ONLY JSON matching the provided schema.
 - If a field is not present in the text, use null. Never guess or invent values.
+- A printed zero is a value: "VAT 0% 0.00" means tax 0, not null.
+- Copy amounts exactly as printed. Never recalculate or "correct" them, even if they don't add up.
 - Dates: YYYY-MM-DD. Amounts: plain numbers without currency symbols or thousands separators.
 - currency: ISO 4217 code (EUR, USD, GBP, UAH...). Infer it from symbols only when unambiguous (€ → EUR, £ → GBP).
 - vendorName is the company issuing the invoice (the seller), customerName is who is billed.

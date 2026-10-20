@@ -133,10 +133,18 @@ export function sanityCheck(d: ExtractedInvoice): string[] {
   if (!d.invoiceNumber) warnings.push('Invoice number not found');
   if (!d.vendorName) warnings.push('Vendor not found');
 
-  if (d.subtotal != null && d.tax != null && d.total != null && !close(d.subtotal + d.tax, d.total)) {
-    warnings.push(
-      `Subtotal (${money(d.subtotal)}) + tax (${money(d.tax)}) does not equal total (${money(d.total)})`,
-    );
+  if (d.subtotal != null && d.total != null) {
+    if (d.tax != null && !close(d.subtotal + d.tax, d.total)) {
+      warnings.push(
+        `Subtotal (${money(d.subtotal)}) + tax (${money(d.tax)}) does not equal total (${money(d.total)})`,
+      );
+    }
+    // Missing tax must not silently skip the check: then subtotal alone should match the total.
+    if (d.tax == null && !close(d.subtotal, d.total)) {
+      warnings.push(
+        `Subtotal (${money(d.subtotal)}) does not equal total (${money(d.total)}) and no tax amount was found`,
+      );
+    }
   }
 
   const amounts = d.lineItems.map((li) => li.amount).filter((a): a is number => a != null);
