@@ -6,12 +6,10 @@
     "node": ">=22"
   },
   "scripts": {
-    "dev:api": "pnpm --filter backend dev:api",
-    "dev:worker": "pnpm --filter backend dev:worker",
+    "dev:backend": "pnpm --filter backend dev",
     "dev:web": "pnpm --filter web dev",
     "db:migrate": "pnpm --filter backend prisma:migrate",
     "build": "pnpm -r build",
-    "test": "pnpm -r test",
-    "lint": "pnpm -r lint"
+    "test": "pnpm -r test"
   }
 }

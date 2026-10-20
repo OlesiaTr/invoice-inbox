@@ -2,9 +2,8 @@
   "name": "backend",
   "private": true,
   "scripts": {
+    "dev": "nest start --watch --entryFile all.main",
     "build": "nest build",
-    "dev:api": "nest start --watch --entryFile api.main",
-    "dev:worker": "nest start --watch --entryFile worker.main --preserveWatchOutput",
     "start:api": "node dist/api.main.js",
     "start:worker": "node dist/worker.main.js",
     "start:all": "node dist/all.main.js",
