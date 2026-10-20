@@ -19,6 +19,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { InvoiceSortField, SortDirection } from '@/gql/graphql';
+import { CopyButton } from '@/shared/CopyButton';
 import { formatDate, formatMoney, timeAgo } from '@/shared/format';
 import { useDeleteInvoice, useRetryInvoice, type InvoiceRow } from './api';
 import { StatusBadge } from './StatusBadge';
@@ -62,7 +63,21 @@ export function InvoiceTable({ rows, loading, refreshing, error, sort, onSortCha
         header: 'Vendor',
         cell: (c) => c.getValue() ?? <span className="text-muted-foreground">—</span>,
       }),
-      col.accessor('invoiceNumber', { header: 'Number', enableSorting: false, cell: (c) => c.getValue() ?? '—' }),
+      col.accessor('invoiceNumber', {
+        header: 'Number',
+        enableSorting: false,
+        cell: (c) => {
+          const n = c.getValue();
+          if (!n) return '—';
+          return (
+            <span className="inline-flex items-center gap-1">
+              {n}
+              {/* Shown on row hover (always visible on touch screens) */}
+              <CopyButton value={n} label="Copy invoice number" className="opacity-100 sm:opacity-0 sm:group-hover/row:opacity-100 focus-visible:opacity-100" />
+            </span>
+          );
+        },
+      }),
       col.accessor('issueDate', { id: 'issueDate', header: 'Issued', cell: (c) => formatDate(c.getValue()) }),
       col.accessor('total', {
         id: 'total',
@@ -231,7 +246,15 @@ export function InvoiceTable({ rows, loading, refreshing, error, sort, onSortCha
             </TableRow>
           )}
           {table.getRowModel().rows.map((row) => (
-            <TableRow key={row.id} className="cursor-pointer" onClick={() => onOpen(row.id)}>
+            <TableRow
+              key={row.id}
+              className="group/row cursor-pointer"
+              onClick={() => {
+                // Selecting text (e.g. to copy a vendor name) must not open the details.
+                if (window.getSelection()?.toString()) return;
+                onOpen(row.id);
+              }}
+            >
               {row.getVisibleCells().map((cell) => (
                 <TableCell key={cell.id} className="max-w-64 whitespace-nowrap">
                   {flexRender(cell.column.columnDef.cell, cell.getContext())}
