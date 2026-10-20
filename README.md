@@ -12,6 +12,21 @@ Upload invoices (PDF or image). They're processed asynchronously: a worker pulls
 
 ---
 
+## Live demo
+
+**API:** https://invoice-inbox-api.onrender.com (health: `/api/health`).
+The frontend link and its access code are shared separately.
+
+> ⚠️ **The hosted demo runs entirely on free tiers and may not always work properly.** For a reliable review, please run it locally (see Quick start below): that's the reference setup.
+>
+> - **Cold start:** the API sleeps after ~15 min idle; the first request can take about a minute.
+> - **AI on Gemini's free tier:** it is regularly overloaded or rate-limited (HTTP 503/429). The assistant then replies "the AI model is busy", and invoices are retried automatically with backoff. They may end up **Failed** after 3 attempts; use **Retry** later.
+> - **One small instance:** the API and the worker share one free Render instance (512 MB). Locally they run as separate services. Slow OCR or a restart can leave an invoice in *Processing* for a few minutes, until its lease expires and the job is picked up again.
+> - **Data:** shared by everyone with the link and may be reset. Upload only the [sample invoices](samples): Gemini's free tier may use prompts to improve Google's products.
+> - The Supabase project pauses after 7 days of inactivity.
+
+How it's deployed and what had to be adapted: [docs/DEPLOY.md](docs/DEPLOY.md).
+
 ## Quick start
 
 Requirements: Docker. Optionally [Ollama](https://ollama.com) for real AI; without it, use the mock AI.
