@@ -2,16 +2,16 @@ import type { TypedDocumentString } from '@/gql/graphql';
 import { AccessCodeRequiredError, getAccessCode, markAccessCodeRequired } from './access-code';
 import { API_URL } from './config';
 
-export function authHeaders(): Record<string, string> {
+export const authHeaders = (): Record<string, string> => {
   const code = getAccessCode();
   return code ? { 'x-access-code': code } : {};
-}
+};
 
 /** Minimal typed GraphQL client: codegen gives the types, fetch does the rest. */
-export async function gql<TResult, TVariables>(
+export const gql = async <TResult, TVariables>(
   document: TypedDocumentString<TResult, TVariables>,
   ...[variables]: TVariables extends Record<string, never> ? [] : [TVariables]
-): Promise<TResult> {
+): Promise<TResult> => {
   const res = await fetch(`${API_URL}/graphql`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', ...authHeaders() },
@@ -36,4 +36,4 @@ export async function gql<TResult, TVariables>(
   }
   if (!body.data) throw new Error(`Request failed (${res.status})`);
   return body.data;
-}
+};

@@ -15,19 +15,19 @@ const STORAGE_KEY = 'invoice-inbox.chat';
 /** Keep the stored transcript bounded; the server only ever sees the recent turns anyway. */
 const MAX_PERSISTED = 40;
 
-function loadHistory(): Message[] {
+const loadHistory = (): Message[] => {
   try {
     return JSON.parse(sessionStorage.getItem(STORAGE_KEY) ?? '[]') as Message[];
   } catch {
     return [];
   }
-}
+};
 
 /**
  * The conversation itself: transcript, persistence, sending a turn, and the state of any
  * destructive action the assistant has proposed. Rendering lives in AssistantPanel.
  */
-export function useAssistantConversation() {
+export const useAssistantConversation = () => {
   const [messages, setMessages] = useState<Message[]>(loadHistory);
   const chat = useAssistantChat();
 
@@ -80,4 +80,4 @@ export function useAssistantConversation() {
   const clear = useCallback(() => setMessages([]), []);
 
   return { messages, send, setPendingState, clear, isPending: chat.isPending };
-}
+};

@@ -5,15 +5,15 @@ import { coerceFieldValue, INVOICE_FIELDS, type FieldKey } from './fields';
 
 type Draft = Record<string, string>;
 
-function draftFrom(data: NonNullable<InvoiceDetail['extractedData']>): Draft {
+const draftFrom = (data: NonNullable<InvoiceDetail['extractedData']>): Draft => {
   return Object.fromEntries(INVOICE_FIELDS.map((f) => [f.key, data[f.key]?.toString() ?? '']));
-}
+};
 
 /**
  * Edit state for an invoice's extracted header fields: which fields changed, how their
  * values are coerced, and the save call. The component using it only renders.
  */
-export function useInvoiceFieldsForm(invoice: InvoiceDetail) {
+export const useInvoiceFieldsForm = (invoice: InvoiceDetail) => {
   const data = invoice.extractedData;
   const update = useUpdateInvoiceFields();
 
@@ -72,4 +72,4 @@ export function useInvoiceFieldsForm(invoice: InvoiceDetail) {
   };
 
   return { editing, draft, start, cancel, setField, save, isSaving: update.isPending };
-}
+};

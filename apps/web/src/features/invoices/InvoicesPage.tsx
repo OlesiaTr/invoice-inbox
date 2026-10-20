@@ -22,7 +22,7 @@ const TABS: { status?: InvoiceStatus; label: string; tone: string }[] = [
   { status: 'failed', label: STATUS_LABELS.failed, tone: 'bg-lighterror text-error' },
 ];
 
-export function InvoicesPage() {
+export const InvoicesPage = () => {
   const { search, setSearch, queryInput, setQueryInput, page, filter } = useInvoicesSearchState();
   const { data, isLoading, isFetching, error } = useInvoices(filter);
   const counts = useStatusCounts().data;
@@ -163,4 +163,4 @@ export function InvoicesPage() {
       />
     </div>
   );
-}
+};

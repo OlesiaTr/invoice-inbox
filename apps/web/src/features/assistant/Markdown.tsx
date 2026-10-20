@@ -4,7 +4,7 @@ import { Fragment, type ReactNode } from 'react';
  * Tiny markdown subset for chat replies: paragraphs, "- " lists, **bold**, `code`; links become plain text.
  * Builds React elements (never innerHTML), so model output can't inject markup.
  */
-export function Markdown({ text }: { text: string }) {
+export const Markdown = ({ text }: { text: string }) => {
   const blocks: ReactNode[] = [];
   let list: string[] = [];
   const flush = () => {
@@ -30,9 +30,9 @@ export function Markdown({ text }: { text: string }) {
   }
   flush();
   return <div className="space-y-2">{blocks}</div>;
-}
+};
 
-function inline(text: string): ReactNode {
+const inline = (text: string): ReactNode => {
   // Links are shown as their text only: model output never becomes a clickable URL.
   text = text.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1');
   return text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).map((part, i) => {
@@ -45,4 +45,4 @@ function inline(text: string): ReactNode {
       );
     return <Fragment key={i}>{part}</Fragment>;
   });
-}
+};

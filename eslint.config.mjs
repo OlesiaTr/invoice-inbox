@@ -11,14 +11,7 @@ import tseslint from 'typescript-eslint';
  */
 export default tseslint.config(
   {
-    ignores: [
-      '**/dist/**',
-      '**/node_modules/**',
-      'apps/web/src/gql/**',
-      'apps/web/src/components/ui/**',
-      '**/*.config.js',
-      'eslint.config.mjs',
-    ],
+    ignores: ['**/dist/**', '**/node_modules/**', 'apps/web/src/gql/**', '**/*.config.js', 'eslint.config.mjs'],
   },
 
   js.configs.recommended,

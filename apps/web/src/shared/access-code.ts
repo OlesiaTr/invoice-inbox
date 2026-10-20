@@ -4,19 +4,19 @@ const KEY = 'invoice-inbox.access-code';
 let required = false;
 const listeners = new Set<() => void>();
 
-function emit() {
+const emit = () => {
   for (const l of listeners) l();
-}
+};
 
-export function getAccessCode(): string | null {
+export const getAccessCode = (): string | null => {
   try {
     return localStorage.getItem(KEY);
   } catch {
     return null;
   }
-}
+};
 
-export function setAccessCode(code: string) {
+export const setAccessCode = (code: string) => {
   try {
     localStorage.setItem(KEY, code);
   } catch {
@@ -24,14 +24,14 @@ export function setAccessCode(code: string) {
   }
   required = false;
   emit();
-}
+};
 
 /** Called by the API layer on 401: the demo is protected and our code is missing or wrong. */
-export function markAccessCodeRequired() {
+export const markAccessCodeRequired = () => {
   if (required) return;
   required = true;
   emit();
-}
+};
 
 export class AccessCodeRequiredError extends Error {
   constructor() {
@@ -39,7 +39,7 @@ export class AccessCodeRequiredError extends Error {
   }
 }
 
-export function useAccessCodeRequired(): boolean {
+export const useAccessCodeRequired = (): boolean => {
   return useSyncExternalStore(
     (l) => {
       listeners.add(l);
@@ -47,4 +47,4 @@ export function useAccessCodeRequired(): boolean {
     },
     () => required,
   );
-}
+};

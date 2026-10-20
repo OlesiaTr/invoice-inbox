@@ -19,7 +19,7 @@ export const STATUS_LABELS: Record<InvoiceStatus, string> = {
   failed: 'Failed',
 };
 
-export function StatusBadge({ status }: { status: InvoiceStatus }) {
+export const StatusBadge = ({ status }: { status: InvoiceStatus }) => {
   const { label, variant, icon: Icon } = STYLES[status];
   return (
     <Badge variant={variant} className="gap-1 whitespace-nowrap">
@@ -27,4 +27,4 @@ export function StatusBadge({ status }: { status: InvoiceStatus }) {
       {label}
     </Badge>
   );
-}
+};

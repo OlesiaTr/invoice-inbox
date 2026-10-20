@@ -1,5 +1,5 @@
 import { Bot, Check, Loader2, Send, ShieldAlert, Sparkles, Trash2, Wrench, X } from 'lucide-react';
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent, type SubmitEvent } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
@@ -21,13 +21,13 @@ const SUGGESTIONS = [
 ];
 
 /** Docked column on wide screens, slide-over sheet on smaller ones. */
-export function AssistantPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+export const AssistantPanel = ({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) => {
   const isWide = useMediaQuery('(min-width: 1280px)');
 
   if (isWide) {
     if (!open) return null;
     return (
-      <aside className="sticky top-22 h-[calc(100vh-7rem)] w-[400px] shrink-0 overflow-hidden rounded-xl bg-card shadow-md dark:shadow-dark-md">
+      <aside className="sticky top-22 h-[calc(100vh-7rem)] w-100 shrink-0 overflow-hidden rounded-xl bg-card shadow-md dark:shadow-dark-md">
         <Chat onClose={() => onOpenChange(false)} />
       </aside>
     );
@@ -40,9 +40,9 @@ export function AssistantPanel({ open, onOpenChange }: { open: boolean; onOpenCh
       </SheetContent>
     </Sheet>
   );
-}
+};
 
-function Chat({ onClose }: { onClose: () => void }) {
+const Chat = ({ onClose }: { onClose: () => void }) => {
   const { messages, send, setPendingState, clear, isPending } = useAssistantConversation();
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -56,7 +56,7 @@ function Chat({ onClose }: { onClose: () => void }) {
     setInput('');
   };
 
-  const submit = (e: FormEvent) => {
+  const submit = (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     submitInput();
   };
@@ -136,15 +136,15 @@ function Chat({ onClose }: { onClose: () => void }) {
       </form>
     </div>
   );
-}
+};
 
-function MessageBubble({
+const MessageBubble = ({
   message,
   onPendingStateChange,
 }: {
   message: Message;
   onPendingStateChange: (actionId: string, state: Exclude<PendingActionState, 'open'>) => void;
-}) {
+}) => {
   const isUser = message.role === 'user';
   return (
     <div className={cn('flex flex-col gap-2', isUser ? 'items-end' : 'items-start')}>
@@ -155,7 +155,7 @@ function MessageBubble({
               key={i}
               title={a.summary}
               className={cn(
-                'inline-flex max-w-full items-start gap-1 break-words rounded-md px-2 py-0.5 text-xs',
+                'inline-flex max-w-full items-start gap-1 wrap-break-word rounded-md px-2 py-0.5 text-xs',
                 a.ok ? 'bg-lightsuccess text-success' : 'bg-lighterror text-error',
               )}
             >
@@ -181,19 +181,19 @@ function MessageBubble({
       ))}
     </div>
   );
-}
+};
 
 /**
  * Destructive actions proposed by the assistant run only from here, through the same
  * mutations the regular UI uses — the human click is the safety gate.
  */
-function PendingActionCard({
+const PendingActionCard = ({
   action,
   onStateChange,
 }: {
   action: PendingAction & { state: PendingActionState };
   onStateChange: (s: Exclude<PendingActionState, 'open'>) => void;
-}) {
+}) => {
   const remove = useDeleteInvoice();
   const update = useUpdateInvoiceFields();
   const busy = remove.isPending || update.isPending;
@@ -246,4 +246,4 @@ function PendingActionCard({
       </div>
     </div>
   );
-}
+};
