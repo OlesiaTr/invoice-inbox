@@ -233,7 +233,7 @@ export function InvoiceTable({ rows, loading, refreshing, error, sort, onSortCha
           {table.getRowModel().rows.map((row) => (
             <TableRow key={row.id} className="cursor-pointer" onClick={() => onOpen(row.id)}>
               {row.getVisibleCells().map((cell) => (
-                <TableCell key={cell.id} className="max-w-64">
+                <TableCell key={cell.id} className="max-w-64 whitespace-nowrap">
                   {flexRender(cell.column.columnDef.cell, cell.getContext())}
                 </TableCell>
               ))}
