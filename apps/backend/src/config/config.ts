@@ -14,7 +14,10 @@ const configSchema = z.object({
   PORT: z.coerce.number().int().default(3000),
   ACCESS_CODE: optional,
   CORS_ORIGIN: z.string().default('http://localhost:5173'),
-  MAX_UPLOAD_BYTES: z.coerce.number().int().default(10 * 1024 * 1024),
+  MAX_UPLOAD_BYTES: z.coerce
+    .number()
+    .int()
+    .default(10 * 1024 * 1024),
 
   STORAGE_DRIVER: z.enum(['local', 's3']).default('local'),
   STORAGE_LOCAL_DIR: z.string().default('./storage'),

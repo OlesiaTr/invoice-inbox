@@ -247,9 +247,10 @@ async function uploadOnce(file: File, idempotencyKey: string): Promise<UploadRes
   if (res.status >= 500 || !res.headers.get('content-type')?.includes('json')) {
     throw new RetryableUploadError(`The server is unavailable right now (HTTP ${res.status}). Try again in a moment.`);
   }
-  const json = await res.json();
+  // Nest's error body carries `message` as a string, or an array of them from a validation pipe.
+  const json = (await res.json()) as UploadResult & { message?: string | string[] };
   if (!res.ok) throw new Error(Array.isArray(json.message) ? json.message.join(', ') : json.message);
-  return json as UploadResult;
+  return json;
 }
 
 export function useUploadInvoice() {
@@ -262,15 +263,13 @@ export function invoiceFileUrl(id: string): string {
   return `${API_URL}/api/invoices/${id}/file${code ? `?access_code=${encodeURIComponent(code)}` : ''}`;
 }
 
-export function patchInvoiceInLists(
-  qc: ReturnType<typeof useQueryClient>,
-  id: string,
-  patch: Partial<InvoiceRow>,
-) {
-  qc.setQueriesData<InvoicesPage>({ queryKey: invoiceKeys.lists() }, (page) =>
-    page && {
-      ...page,
-      items: page.items.map((row) => (row.id === id ? { ...row, ...patch } : row)),
-    },
+export function patchInvoiceInLists(qc: ReturnType<typeof useQueryClient>, id: string, patch: Partial<InvoiceRow>) {
+  qc.setQueriesData<InvoicesPage>(
+    { queryKey: invoiceKeys.lists() },
+    (page) =>
+      page && {
+        ...page,
+        items: page.items.map((row) => (row.id === id ? { ...row, ...patch } : row)),
+      },
   );
 }

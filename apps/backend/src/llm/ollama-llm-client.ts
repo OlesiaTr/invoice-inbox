@@ -1,7 +1,7 @@
 import { Ollama, type Message } from 'ollama';
 import { EXTRACTED_INVOICE_JSON_SCHEMA } from '../invoices/domain/invoice-data';
 import { TransientProcessingError, errorMessage } from '../invoices/domain/processing-errors';
-import { ChatMessage, ChatResult, LlmClient, ToolSpec } from './llm-client';
+import { type ChatMessage, type ChatResult, LlmClient, type ToolSpec } from './llm-client';
 import { EXTRACTION_SYSTEM_PROMPT, extractionUserPrompt } from './prompts';
 import { withTimeout } from './with-timeout';
 

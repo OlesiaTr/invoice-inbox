@@ -3,7 +3,6 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import type { Worker as OcrWorker } from 'tesseract.js';
-import type { SupportedMimeType } from '../invoices/domain/file-type';
 import { PermanentProcessingError, errorMessage } from '../invoices/domain/processing-errors';
 
 // English + Ukrainian: Latin and Cyrillic invoices. More languages = slower OCR.
@@ -20,9 +19,12 @@ const MIN_TEXT_LENGTH = 20;
 export class TextExtractor implements OnModuleDestroy {
   private ocr?: Promise<OcrWorker>;
 
-  async extract(file: Buffer, mimeType: SupportedMimeType | string): Promise<string> {
+  async extract(file: Buffer, mimeType: string): Promise<string> {
     const text = mimeType === 'application/pdf' ? await this.fromPdf(file) : await this.fromImage(file);
-    const clean = text.replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+    const clean = text
+      .replace(/[ \t]+/g, ' ')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
     if (clean.length < MIN_TEXT_LENGTH) {
       throw new PermanentProcessingError(
         mimeType === 'application/pdf'
@@ -62,6 +64,8 @@ export class TextExtractor implements OnModuleDestroy {
       // languages from one directory, so the per-package files are linked into a temp dir.
       const dir = await mkdtemp(join(tmpdir(), 'tessdata-'));
       for (const lang of OCR_LANGUAGES) {
+        // The package name is built at runtime from OCR_LANGUAGES; a static import can't express that.
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
         const { langPath } = require(`@tesseract.js-data/${lang}`) as { langPath: string };
         await symlink(join(langPath, `${lang}.traineddata.gz`), join(dir, `${lang}.traineddata.gz`));
       }

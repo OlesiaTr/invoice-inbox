@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Lint, types and unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Everything type-aware needs the generated client to exist first.
+      - run: pnpm --filter backend exec prisma generate
+      - run: pnpm format:check
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+
+  integration:
+    name: Integration and e2e tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: invoices
+          POSTGRES_PASSWORD: invoices
+          POSTGRES_DB: invoices
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      PGPASSWORD: invoices
+      TEST_DATABASE_URL: postgresql://invoices:invoices@localhost:5432/invoices_test
+      DATABASE_URL: postgresql://invoices:invoices@localhost:5432/invoices_test
+      DIRECT_URL: postgresql://invoices:invoices@localhost:5432/invoices_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter backend exec prisma generate
+
+      # A service container can't run the repo's init script, so apply the same pgmq SQL
+      # by hand. template1 is what matters: global-setup.ts creates the test database from
+      # it, so the migrations find pgmq already installed.
+      - name: Install pgmq
+        run: |
+          for db in template1 invoices; do
+            psql -h localhost -U invoices -d "$db" -v ON_ERROR_STOP=1 -q \
+              -f infra/postgres/pgmq/pgmq-v1.7.0.sql
+          done
+
+      - run: pnpm --filter backend test:integration

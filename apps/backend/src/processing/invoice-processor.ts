@@ -1,17 +1,9 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { Invoice, Prisma } from '@prisma/client';
+import { Invoice } from '@prisma/client';
 import { z } from 'zod';
 import { APP_CONFIG, type AppConfig } from '../config/config';
-import {
-  extractedInvoiceSchema,
-  promotedColumns,
-  sanityCheck,
-} from '../invoices/domain/invoice-data';
-import {
-  PermanentProcessingError,
-  TransientProcessingError,
-  errorMessage,
-} from '../invoices/domain/processing-errors';
+import { extractedInvoiceSchema, promotedColumns, sanityCheck } from '../invoices/domain/invoice-data';
+import { PermanentProcessingError, TransientProcessingError, errorMessage } from '../invoices/domain/processing-errors';
 import { LlmClient } from '../llm/llm-client';
 import { PrismaService } from '../prisma/prisma.service';
 import { InvoiceJob, JobQueue, QueueMessage } from '../queue/job-queue';
@@ -19,12 +11,7 @@ import { FileStorage } from '../storage/file-storage';
 import { TextExtractor } from './text-extractor';
 
 export type ProcessOutcome =
-  | 'completed'
-  | 'failed'
-  | 'retry_scheduled'
-  | 'duplicate'
-  | 'busy_elsewhere'
-  | 'dead_lettered';
+  'completed' | 'failed' | 'retry_scheduled' | 'duplicate' | 'busy_elsewhere' | 'dead_lettered';
 
 /**
  * Handles one queue message. Delivery is at-least-once, so every step is written to be
@@ -91,7 +78,7 @@ export class InvoiceProcessor {
             processingStartedAt: null,
             errorReason: null,
             rawText,
-            extractedData: data as Prisma.InputJsonValue,
+            extractedData: data,
             warnings: sanityCheck(data),
             ...promotedColumns(data),
           },

@@ -1,0 +1,14 @@
+node_modules
+dist
+pnpm-lock.yaml
+
+# Generated: GraphQL codegen output and the Prisma/Nest schema artefacts.
+apps/web/src/gql
+apps/backend/schema.graphql
+apps/backend/prisma/migrations
+
+# Owned by the shadcn CLI — reformatting them only creates conflicts on the next update.
+apps/web/src/components/ui
+
+# Hand-laid-out prose and tables; formatting these is churn, not consistency.
+*.md

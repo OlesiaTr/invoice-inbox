@@ -11,7 +11,7 @@ import { useTheme } from '@/shared/theme';
 export function AppLayout() {
   useInvoiceLiveUpdates();
   const { theme, toggle } = useTheme();
-  const search = useSearch({ strict: false }) as { chat?: boolean };
+  const search: { chat?: boolean } = useSearch({ strict: false });
   const navigate = useNavigate();
   const chatOpen = !!search.chat;
   const setChatOpen = (open: boolean) =>

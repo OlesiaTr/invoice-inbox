@@ -17,7 +17,10 @@ async function uploadAndRead(file = 'acme-cloud-INV-2026-0042.pdf') {
 
 describe('upload', () => {
   it('stores the row and its job together', async () => {
-    const { invoice } = await h.invoices.upload({ buffer: sample('acme-cloud-INV-2026-0042.pdf'), originalName: 'a.pdf' });
+    const { invoice } = await h.invoices.upload({
+      buffer: sample('acme-cloud-INV-2026-0042.pdf'),
+      originalName: 'a.pdf',
+    });
 
     expect(invoice.status).toBe('uploaded');
     expect(h.storage.files.size).toBe(1);
@@ -37,7 +40,11 @@ describe('upload', () => {
   });
 
   it('returns the first invoice when an upload is retried with the same idempotency key', async () => {
-    const file = { buffer: sample('acme-cloud-INV-2026-0042.pdf'), originalName: 'a.pdf', idempotencyKey: 'key-retry-1' };
+    const file = {
+      buffer: sample('acme-cloud-INV-2026-0042.pdf'),
+      originalName: 'a.pdf',
+      idempotencyKey: 'key-retry-1',
+    };
     const first = await h.invoices.upload(file);
     const retry = await h.invoices.upload(file); // e.g. the first response was lost
 
@@ -48,7 +55,11 @@ describe('upload', () => {
   });
 
   it('creates one invoice when retries with the same key race each other', async () => {
-    const file = { buffer: sample('acme-cloud-INV-2026-0042.pdf'), originalName: 'a.pdf', idempotencyKey: 'key-race-1' };
+    const file = {
+      buffer: sample('acme-cloud-INV-2026-0042.pdf'),
+      originalName: 'a.pdf',
+      idempotencyKey: 'key-race-1',
+    };
     const results = await Promise.all([h.invoices.upload(file), h.invoices.upload(file), h.invoices.upload(file)]);
 
     expect(new Set(results.map((r) => r.invoice.id)).size).toBe(1);
@@ -59,7 +70,10 @@ describe('upload', () => {
 
   it('flags duplicates by content hash', async () => {
     const first = await h.invoices.upload({ buffer: sample('acme-cloud-INV-2026-0042.pdf'), originalName: 'a.pdf' });
-    const second = await h.invoices.upload({ buffer: sample('acme-cloud-INV-2026-0042.pdf'), originalName: 'copy.pdf' });
+    const second = await h.invoices.upload({
+      buffer: sample('acme-cloud-INV-2026-0042.pdf'),
+      originalName: 'copy.pdf',
+    });
     expect(second.duplicateOf?.id).toBe(first.invoice.id);
   });
 });
@@ -194,7 +208,10 @@ describe('invoice_events trigger', () => {
     listener.on('notification', (n) => events.push(JSON.parse(n.payload!)));
     await listener.query('LISTEN invoice_events');
 
-    const { invoice } = await h.invoices.upload({ buffer: sample('acme-cloud-INV-2026-0042.pdf'), originalName: 'a.pdf' });
+    const { invoice } = await h.invoices.upload({
+      buffer: sample('acme-cloud-INV-2026-0042.pdf'),
+      originalName: 'a.pdf',
+    });
     await h.prisma
       .$transaction(async (tx) => {
         await tx.invoice.update({ where: { id: invoice.id }, data: { status: 'processing' } });
