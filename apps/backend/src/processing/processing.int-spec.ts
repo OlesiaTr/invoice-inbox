@@ -128,6 +128,18 @@ describe('processing', () => {
   });
 });
 
+describe('listing', () => {
+  it('filters invoices with warnings', async () => {
+    const ok = await uploadAndRead('acme-cloud-INV-2026-0042.pdf');
+    await h.processor.process(ok.message);
+    const bad = await uploadAndRead('northwind-supplies-1187.pdf');
+    await h.processor.process(bad.message);
+
+    const { items } = await h.invoices.list({ withWarnings: true });
+    expect(items.map((i) => i.id)).toEqual([bad.invoice.id]);
+  });
+});
+
 describe('manual retry', () => {
   it('re-queues a failed invoice', async () => {
     const { invoice, message } = await uploadAndRead('corrupted.pdf');

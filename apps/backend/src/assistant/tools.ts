@@ -65,7 +65,7 @@ export const ASSISTANT_TOOLS = [
   tool({
     name: 'list_invoices',
     description:
-      'List invoices, newest first. Filter by status, free-text search (file name, vendor, number), vendor, or issue date range.',
+      'List invoices, newest first. Filter by status, free-text search (file name, vendor, number), vendor, issue date range, or withWarnings (completed invoices whose numbers did not pass the sanity checks).',
     destructive: false,
     schema: z.object({
       status: z.enum(['uploaded', 'processing', 'completed', 'failed']).optional(),
@@ -73,6 +73,7 @@ export const ASSISTANT_TOOLS = [
       vendor: z.string().optional(),
       dateFrom: z.string().optional().describe('YYYY-MM-DD, inclusive, on issue date'),
       dateTo: z.string().optional().describe('YYYY-MM-DD, inclusive, on issue date'),
+      withWarnings: z.boolean().optional().describe('true = only invoices with warnings'),
       limit: z.number().int().min(1).max(50).optional().describe('Default 10'),
     }),
     run: async (a, invoices) => {
