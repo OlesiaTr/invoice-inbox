@@ -179,11 +179,11 @@ function Chat({ onClose }: { onClose: () => void }) {
                     key={i}
                     title={a.summary}
                     className={cn(
-                      'inline-flex max-w-full items-center gap-1 truncate rounded-md px-2 py-0.5 text-xs',
+                      'inline-flex max-w-full items-start gap-1 break-words rounded-md px-2 py-0.5 text-xs',
                       a.ok ? 'bg-lightsuccess text-success' : 'bg-lighterror text-error',
                     )}
                   >
-                    <Wrench className="size-3 shrink-0" /> {a.summary}
+                    <Wrench className="mt-0.5 size-3 shrink-0" /> <span>{a.summary}</span>
                   </span>
                 ))}
               </div>
