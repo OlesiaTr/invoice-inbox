@@ -50,5 +50,9 @@ model Invoice {
   @@index([status])
   @@index([sha256])
   @@index([createdAt])
+  // Sorted and filtered by list(); see InvoicesService.list.
+  @@index([vendorName])
+  @@index([issueDate])
+  @@index([total])
   @@map("invoices")
 }
