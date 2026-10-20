@@ -12,20 +12,30 @@ import { withTimeout } from './with-timeout';
 export class GeminiLlmClient extends LlmClient {
   private readonly ai: GoogleGenAI;
 
+  private readonly models: string[];
+
+  /**
+   * @param model primary model; `fallbackModels` are tried in order when it is overloaded
+   *   (the free tier regularly answers 503 "high demand" or 429 "rate limited").
+   */
   constructor(
     apiKey: string,
-    private readonly model: string,
+    model: string,
     private readonly timeoutMs: number,
-    baseUrl?: string,
+    { baseUrl, fallbackModels = [], retryDelayMs = 1500 }: { baseUrl?: string; fallbackModels?: string[]; retryDelayMs?: number } = {},
   ) {
     super();
+    this.models = [model, ...fallbackModels.filter((m) => m && m !== model)];
+    this.retryDelayMs = retryDelayMs;
     this.ai = new GoogleGenAI({ apiKey, httpOptions: baseUrl ? { baseUrl } : undefined });
   }
 
+  private readonly retryDelayMs: number;
+
   async extractInvoice(invoiceText: string): Promise<unknown> {
-    const res = await this.call(() =>
+    const res = await this.call((model) =>
       this.ai.models.generateContent({
-        model: this.model,
+        model,
         contents: [{ role: 'user', parts: [{ text: extractionUserPrompt(invoiceText) }] }],
         config: {
           systemInstruction: EXTRACTION_SYSTEM_PROMPT,
@@ -44,9 +54,9 @@ export class GeminiLlmClient extends LlmClient {
 
   async chat(messages: ChatMessage[], tools: ToolSpec[]): Promise<ChatResult> {
     const system = messages.filter((m) => m.role === 'system').map((m) => m.content).join('\n\n');
-    const res = await this.call(() =>
+    const res = await this.call((model) =>
       this.ai.models.generateContent({
-        model: this.model,
+        model,
         contents: toGeminiContents(messages),
         config: {
           systemInstruction: system || undefined,
@@ -74,14 +84,34 @@ export class GeminiLlmClient extends LlmClient {
     };
   }
 
-  private async call(fn: () => Promise<GenerateContentResponse>): Promise<GenerateContentResponse> {
-    try {
-      return await withTimeout(fn(), this.timeoutMs, 'Gemini request');
-    } catch (err) {
-      // Includes free-tier rate limits (429): worth retrying later.
-      throw new TransientProcessingError(`Gemini (${this.model}) failed: ${errorMessage(err)}`);
+  /**
+   * Overloaded (503) or rate-limited (429): retry the same model once after a short pause,
+   * then move on to the next fallback model. Anything else fails right away.
+   */
+  private async call(fn: (model: string) => Promise<GenerateContentResponse>): Promise<GenerateContentResponse> {
+    let lastError: unknown;
+    for (const model of this.models) {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          return await withTimeout(fn(model), this.timeoutMs, 'Gemini request');
+        } catch (err) {
+          lastError = err;
+          if (!isOverloaded(err)) throw new TransientProcessingError(`Gemini (${model}) failed: ${errorMessage(err)}`);
+          if (attempt === 0) await new Promise((r) => setTimeout(r, this.retryDelayMs));
+        }
+      }
     }
+    // Still transient: the queue retries extraction later with backoff.
+    throw new TransientProcessingError(
+      `Gemini is overloaded (tried ${this.models.join(', ')}): ${errorMessage(lastError)}`,
+    );
   }
+
+}
+
+function isOverloaded(err: unknown): boolean {
+  const status = (err as { status?: number })?.status;
+  return status === 503 || status === 429 || /UNAVAILABLE|RESOURCE_EXHAUSTED|high demand/i.test(errorMessage(err));
 }
 
 /** Gemini roles are user/model; tool calls and results are message parts. */

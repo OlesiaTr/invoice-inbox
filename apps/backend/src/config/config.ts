@@ -29,6 +29,8 @@ const configSchema = z.object({
   OLLAMA_MODEL: z.string().default('qwen2.5:7b'),
   GEMINI_API_KEY: optional,
   GEMINI_MODEL: z.string().default('gemini-flash-latest'),
+  // Comma-separated; tried in order when the primary model is overloaded.
+  GEMINI_FALLBACK_MODELS: z.string().default('gemini-flash-lite-latest'),
   LLM_TIMEOUT_SECONDS: z.coerce.number().int().default(90),
 
   WORKER_CONCURRENCY: z.coerce.number().int().min(1).default(2),

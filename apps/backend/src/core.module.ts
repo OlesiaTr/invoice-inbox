@@ -55,7 +55,9 @@ function required(value: string | undefined, name: string): string {
           case 'mock':
             return new MockLlmClient();
           case 'gemini':
-            return new GeminiLlmClient(required(config.GEMINI_API_KEY, 'GEMINI_API_KEY'), config.GEMINI_MODEL, timeoutMs);
+            return new GeminiLlmClient(required(config.GEMINI_API_KEY, 'GEMINI_API_KEY'), config.GEMINI_MODEL, timeoutMs, {
+              fallbackModels: config.GEMINI_FALLBACK_MODELS.split(',').map((m) => m.trim()),
+            });
         }
       },
     },
