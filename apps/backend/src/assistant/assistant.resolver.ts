@@ -1,4 +1,5 @@
 import { Args, Field, ID, InputType, Mutation, ObjectType, Resolver, registerEnumType } from '@nestjs/graphql';
+import { Throttle } from '@nestjs/throttler';
 import { AssistantService } from './assistant.service';
 
 enum ChatRole {
@@ -48,6 +49,9 @@ class AssistantReply {
 export class AssistantResolver {
   constructor(private readonly assistant: AssistantService) {}
 
+  // Each turn can fan out into several model calls; this is the most expensive thing
+  // an anonymous caller can trigger.
+  @Throttle({ default: { ttl: 60_000, limit: 20 } })
   @Mutation(() => AssistantReply, { description: 'One assistant turn. The client sends the visible conversation.' })
   async assistantChat(
     @Args('messages', { type: () => [ChatMessageInput] }) messages: ChatMessageInput[],

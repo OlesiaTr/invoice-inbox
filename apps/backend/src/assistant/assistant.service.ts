@@ -1,15 +1,19 @@
 import { randomUUID } from 'node:crypto';
-import { HttpException, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, HttpException, Injectable, Logger } from '@nestjs/common';
 import { TransientProcessingError, errorMessage } from '../invoices/domain/processing-errors';
 import { InvoicesService } from '../invoices/invoices.service';
 import { ChatMessage, LlmClient, ToolCall } from '../llm/llm-client';
 import { TOOL_CHECK_PROMPT } from '../llm/prompts';
-import { ASSISTANT_TOOLS, AssistantTool, PendingActionPreview, toolJsonSchema } from './tools';
+import { ASSISTANT_TOOLS, PendingActionPreview, toolJsonSchema } from './tools';
 
 /** Bounded agent loop: a confused model can't spin forever. */
 const MAX_TOOL_ROUNDS = 5;
 const MAX_TOOL_RESULT_CHARS = 6000;
 const MAX_HISTORY_MESSAGES = 20;
+// The client is trusted to send back its own visible conversation, so these are what stop
+// a crafted request from turning into an arbitrarily large (and slow, and costly) prompt.
+const MAX_MESSAGE_CHARS = 4000;
+const MAX_TOTAL_CHARS = 20_000;
 
 export interface ConversationTurn {
   role: 'user' | 'assistant';
@@ -65,6 +69,7 @@ export class AssistantService {
 
   /** Stateless: the client sends the visible conversation each turn. */
   async chat(history: ConversationTurn[]): Promise<AssistantReply> {
+    assertWithinSizeLimits(history);
     const messages: ChatMessage[] = [
       { role: 'system', content: systemPrompt() },
       ...history.slice(-MAX_HISTORY_MESSAGES),
@@ -98,9 +103,10 @@ export class AssistantService {
         }
         // The check found no tool was needed: keep the original answer (the model's
         // second reply is only its verdict, e.g. "OK" — asking it to "repeat" was unreliable).
-        const reply = uncheckedReply !== undefined && actions.length === 0 && pendingActions.length === 0
-          ? uncheckedReply
-          : res.content;
+        const reply =
+          uncheckedReply !== undefined && actions.length === 0 && pendingActions.length === 0
+            ? uncheckedReply
+            : res.content;
         return { reply: reply.trim() || 'Done.', actions, pendingActions };
       }
       messages.push({ role: 'assistant', content: res.content, toolCalls: res.toolCalls });
@@ -123,7 +129,7 @@ export class AssistantService {
     pending: PendingAction[],
     lastUserText: string,
   ): Promise<string> {
-    const tool = this.tools.get(call.name) as AssistantTool | undefined;
+    const tool = this.tools.get(call.name);
     if (!tool) return `Error: unknown tool "${call.name}"`;
 
     const parsed = tool.schema.safeParse(call.arguments ?? {});
@@ -134,7 +140,7 @@ export class AssistantService {
     try {
       // Values for edits must come from the user, not the model: enforced, not just prompted.
       for (const arg of tool.userStatedArgs ?? []) {
-        const value = (parsed.data as Record<string, unknown>)[arg];
+        const value = parsed.data[arg];
         if (value !== undefined && !userStatedValue(lastUserText, value)) {
           return `Error: the user did not mention ${arg} ${JSON.stringify(value)}. Never add values the user didn't give: for an edit, ask the user for the value; for a filter, call the tool again without it.`;
         }
@@ -155,6 +161,21 @@ export class AssistantService {
       actions.push({ tool: call.name, ok: false, summary: `${describe(call)} — ${errorMessage(err)}` });
       return `Error: ${errorMessage(err)}`;
     }
+  }
+}
+
+/**
+ * Only the last MAX_HISTORY_MESSAGES turns are sent on, but they are counted in full:
+ * truncating silently would quietly drop what the user wrote.
+ */
+function assertWithinSizeLimits(history: ConversationTurn[]): void {
+  const considered = history.slice(-MAX_HISTORY_MESSAGES);
+  if (considered.some((m) => m.content.length > MAX_MESSAGE_CHARS)) {
+    throw new BadRequestException(`Each message must be at most ${MAX_MESSAGE_CHARS} characters`);
+  }
+  const total = considered.reduce((n, m) => n + m.content.length, 0);
+  if (total > MAX_TOTAL_CHARS) {
+    throw new BadRequestException('This conversation is too long; clear the chat and ask again');
   }
 }
 
@@ -180,7 +201,10 @@ export function userStatedValue(text: string, value: unknown): boolean {
     if (norm(text).includes(norm(value))) return true;
     // Dates arrive normalised (YYYY-MM-DD); accept any date in the text that parses to the same day.
     if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-      const candidates = text.match(/\d{4}-\d{2}-\d{2}|\d{1,2}[./]\d{1,2}[./]\d{4}|[a-z]{3,9}\.? \d{1,2},? \d{4}|\d{1,2} [a-z]{3,9} \d{4}/gi) ?? [];
+      const candidates =
+        text.match(
+          /\d{4}-\d{2}-\d{2}|\d{1,2}[./]\d{1,2}[./]\d{4}|[a-z]{3,9}\.? \d{1,2},? \d{4}|\d{1,2} [a-z]{3,9} \d{4}/gi,
+        ) ?? [];
       return candidates.some((c) => {
         const dmy = c.match(/^(\d{1,2})[./](\d{1,2})[./](\d{4})$/);
         const iso = dmy ? `${dmy[3]}-${dmy[2].padStart(2, '0')}-${dmy[1].padStart(2, '0')}` : c;

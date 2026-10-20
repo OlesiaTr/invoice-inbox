@@ -1,10 +1,5 @@
-import {
-  Inject,
-  Injectable,
-  Logger,
-  OnApplicationBootstrap,
-  OnModuleDestroy,
-} from '@nestjs/common';
+import { Inject, Injectable, Logger, OnApplicationBootstrap, OnModuleDestroy } from '@nestjs/common';
+import { runWithContext } from '../common/request-context';
 import { APP_CONFIG, type AppConfig } from '../config/config';
 import { errorMessage } from '../invoices/domain/processing-errors';
 import { JobQueue } from '../queue/job-queue';
@@ -46,8 +41,12 @@ export class QueueConsumer implements OnApplicationBootstrap, OnModuleDestroy {
       try {
         const messages = await this.queue.read(this.config.QUEUE_VISIBILITY_TIMEOUT_SECONDS, 1, 5);
         for (const message of messages) {
-          const outcome = await this.processor.process(message);
-          this.logger.log(`[loop ${index}] invoice ${message.payload.invoiceId}: ${outcome}`);
+          // One context per message: every line the processor logs carries the invoice id
+          // and a shared correlation id, so a job's whole journey is one grep.
+          await runWithContext({ invoiceId: message.payload.invoiceId }, async () => {
+            const outcome = await this.processor.process(message);
+            this.logger.log(`[loop ${index}] invoice ${message.payload.invoiceId}: ${outcome}`);
+          });
         }
       } catch (err) {
         // Unexpected (e.g. DB down). The message, if any, stays in the queue and reappears.
