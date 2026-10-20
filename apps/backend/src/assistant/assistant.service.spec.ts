@@ -138,6 +138,30 @@ describe('AssistantService', () => {
     expect(res.reply).toBe('Explained.');
   });
 
+  it('asks the model to check itself once when it answered without any tool', async () => {
+    const { service, invoices, llm } = setup([
+      { content: 'INV-777 is from Test Vendor LLC. Please confirm the deletion.', toolCalls: [] }, // invented
+      { content: '', toolCalls: [{ name: 'delete_invoice', arguments: { ref: 'INV-1' } }] },
+      { content: 'Please confirm the deletion below.', toolCalls: [] },
+    ]);
+    const res = await service.chat(user('Delete invoice INV-1'));
+
+    expect(llm.calls[1].at(-1)!.content).toMatch(/^\[Automatic check/);
+    expect(res.pendingActions).toHaveLength(1);
+    expect(res.reply).toBe('Please confirm the deletion below.');
+    expect(invoices.delete).not.toHaveBeenCalled();
+  });
+
+  it('checks only once, so a plain answer still comes back', async () => {
+    const { service, llm } = setup([
+      { content: 'Hi! How can I help?', toolCalls: [] },
+      { content: 'Hi! How can I help?', toolCalls: [] },
+    ]);
+    const res = await service.chat(user('hello'));
+    expect(llm.calls).toHaveLength(2);
+    expect(res.reply).toBe('Hi! How can I help?');
+  });
+
   it('stops a model that keeps calling tools', async () => {
     const loop = { content: '', toolCalls: [{ name: 'list_invoices', arguments: {} }] };
     const { service, llm } = setup(Array.from({ length: 20 }, () => loop));

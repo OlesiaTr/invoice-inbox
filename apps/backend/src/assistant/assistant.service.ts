@@ -3,6 +3,7 @@ import { HttpException, Injectable, Logger } from '@nestjs/common';
 import { errorMessage } from '../invoices/domain/processing-errors';
 import { InvoicesService } from '../invoices/invoices.service';
 import { ChatMessage, LlmClient, ToolCall } from '../llm/llm-client';
+import { TOOL_CHECK_PROMPT } from '../llm/prompts';
 import { ASSISTANT_TOOLS, AssistantTool, PendingActionPreview, toolJsonSchema } from './tools';
 
 /** Bounded agent loop: a confused model can't spin forever. */
@@ -71,9 +72,16 @@ export class AssistantService {
     const pendingActions: PendingAction[] = [];
     const lastUserText = [...history].reverse().find((m) => m.role === 'user')?.content ?? '';
 
+    let checked = false;
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
       const res = await this.llm.chat(messages, this.toolSpecs);
       if (res.toolCalls.length === 0) {
+        // No tool at all this turn: likely answered from memory. Ask the model to check once.
+        if (!checked && actions.length === 0 && pendingActions.length === 0) {
+          checked = true;
+          messages.push({ role: 'assistant', content: res.content }, { role: 'user', content: TOOL_CHECK_PROMPT });
+          continue;
+        }
         return { reply: res.content.trim() || 'Done.', actions, pendingActions };
       }
       messages.push({ role: 'assistant', content: res.content, toolCalls: res.toolCalls });
