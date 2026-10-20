@@ -31,7 +31,7 @@ const invoice = {
   warnings: [],
   errorReason: null,
   attempts: 1,
-  extractedData: null,
+  extractedData: { total: 1000 },
   createdAt: new Date('2026-10-01T00:00:00Z'),
 } as unknown as Invoice;
 
@@ -85,7 +85,22 @@ describe('AssistantService', () => {
     const res = await service.chat(user('total should be 1200'));
 
     expect(invoices.updateFields).not.toHaveBeenCalled();
-    expect(res.pendingActions[0]).toMatchObject({ kind: 'update_invoice_field', field: 'total', value: 1200 });
+    expect(res.pendingActions[0]).toMatchObject({
+      kind: 'update_invoice_field',
+      field: 'total',
+      value: 1200,
+      summary: 'Change total of INV-1 (Acme) from 1000 to 1200',
+    });
+  });
+
+  it('refuses a no-op edit instead of asking the user to confirm nothing', async () => {
+    const { service, llm } = setup([
+      { content: '', toolCalls: [{ name: 'update_invoice_field', arguments: { ref: 'INV-1', field: 'total', value: 1000 } }] },
+    ]);
+    const res = await service.chat(user('fix the total'));
+
+    expect(res.pendingActions).toEqual([]);
+    expect(llm.calls[1].at(-1)!.content).toMatch(/already 1000 — nothing to change/);
   });
 
   it('returns validation and business-rule errors to the model instead of throwing', async () => {
