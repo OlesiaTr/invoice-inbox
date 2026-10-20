@@ -1,3 +1,4 @@
+import { ConflictException } from '@nestjs/common';
 import { Invoice } from '@prisma/client';
 import { z } from 'zod';
 import { EDITABLE_FIELDS, extractedInvoiceSchema } from '../invoices/domain/invoice-data';
@@ -136,7 +137,7 @@ export const ASSISTANT_TOOLS = [
   tool({
     name: 'update_invoice_field',
     description:
-      'Correct one extracted field of a COMPLETED invoice (e.g. a wrong total or vendor). Requires the user to confirm in the UI.',
+      'Correct one extracted header field of a COMPLETED invoice (e.g. a wrong total or vendor). Line items cannot be edited. Requires the user to confirm in the UI.',
     destructive: true,
     schema: z.object({
       ref,
@@ -147,12 +148,22 @@ export const ASSISTANT_TOOLS = [
       const i = await invoices.findByRef(a.ref);
       // Normalise through the same schema the service uses, so the preview shows the real value.
       const value = extractedInvoiceSchema.shape[a.field].parse(a.value) as string | number | null;
+      if (i.status !== 'completed') {
+        throw new ConflictException(`Only completed invoices can be edited (${label(i)} is ${i.status})`);
+      }
+      const current = ((i.extractedData ?? {}) as Record<string, unknown>)[a.field] ?? null;
+      // A no-op edit would ask the user to confirm nothing; tell the model instead.
+      if (current === value) {
+        throw new ConflictException(
+          `${a.field} of ${label(i)} is already ${value ?? '(empty)'} — nothing to change. Line items cannot be edited.`,
+        );
+      }
       return {
         kind: 'update_invoice_field',
         invoiceId: i.id,
         field: a.field,
         value,
-        summary: `Set ${a.field} of ${label(i)} to ${value ?? '(empty)'}`,
+        summary: `Change ${a.field} of ${label(i)} from ${current ?? '(empty)'} to ${value ?? '(empty)'}`,
       };
     },
     run: async (a, invoices) => {
