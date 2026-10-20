@@ -3,7 +3,7 @@ import {
   Injectable,
   Logger,
   OnApplicationBootstrap,
-  OnApplicationShutdown,
+  OnModuleDestroy,
 } from '@nestjs/common';
 import { APP_CONFIG, type AppConfig } from '../config/config';
 import { errorMessage } from '../invoices/domain/processing-errors';
@@ -15,7 +15,7 @@ import { InvoiceProcessor } from './invoice-processor';
  * the queue hands each message to one reader at a time.
  */
 @Injectable()
-export class QueueConsumer implements OnApplicationBootstrap, OnApplicationShutdown {
+export class QueueConsumer implements OnApplicationBootstrap, OnModuleDestroy {
   private readonly logger = new Logger(QueueConsumer.name);
   private stopping = false;
   private loops: Promise<void>[] = [];
@@ -32,8 +32,11 @@ export class QueueConsumer implements OnApplicationBootstrap, OnApplicationShutd
     this.loops = Array.from({ length: n }, (_, i) => this.loop(i));
   }
 
-  /** Graceful shutdown: stop polling, let in-flight jobs finish (bounded by the platform's kill timeout). */
-  async onApplicationShutdown() {
+  /**
+   * Graceful shutdown: stop polling and let in-flight jobs finish before the DB connection
+   * closes (Nest runs onModuleDestroy before the Prisma disconnect).
+   */
+  async onModuleDestroy() {
     this.stopping = true;
     await Promise.allSettled(this.loops);
   }
