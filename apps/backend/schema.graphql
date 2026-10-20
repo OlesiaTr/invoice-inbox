@@ -2,6 +2,28 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
+type AssistantAction {
+  ok: Boolean!
+  summary: String!
+  tool: String!
+}
+
+type AssistantReply {
+  actions: [AssistantAction!]!
+  pendingActions: [PendingAction!]!
+  reply: String!
+}
+
+input ChatMessageInput {
+  content: String!
+  role: ChatRole!
+}
+
+enum ChatRole {
+  assistant
+  user
+}
+
 """
 A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
 """
@@ -101,10 +123,31 @@ type LineItemModel {
 }
 
 type Mutation {
+  """One assistant turn. The client sends the visible conversation."""
+  assistantChat(messages: [ChatMessageInput!]!): AssistantReply!
   deleteInvoice(id: ID!): Invoice!
   retryAllFailedInvoices: RetryAllResult!
   retryInvoice(id: ID!): Invoice!
   updateInvoiceFields(id: ID!, input: UpdateInvoiceFieldsInput!): Invoice!
+}
+
+"""
+A destructive action the assistant proposed; runs only if the user confirms it in the UI
+"""
+type PendingAction {
+  field: String
+  id: ID!
+  invoiceId: ID!
+  kind: PendingActionKind!
+  summary: String!
+
+  """JSON-encoded new value (string, number or null)"""
+  valueJson: String
+}
+
+enum PendingActionKind {
+  delete_invoice
+  update_invoice_field
 }
 
 type Query {

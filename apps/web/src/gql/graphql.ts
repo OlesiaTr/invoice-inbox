@@ -4,6 +4,15 @@ type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
 /** Internal type. DO NOT USE DIRECTLY. */
 export type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
 import type { DocumentTypeDecoration } from '@graphql-typed-document-node/core';
+export type ChatMessageInput = {
+  content: string;
+  role: ChatRole;
+};
+
+export type ChatRole =
+  | 'assistant'
+  | 'user';
+
 export type InvoiceEventType =
   | 'DELETE'
   | 'INSERT'
@@ -31,6 +40,10 @@ export type InvoicesFilter = {
   status?: InvoiceStatus | null | undefined;
 };
 
+export type PendingActionKind =
+  | 'delete_invoice'
+  | 'update_invoice_field';
+
 export type SortDirection =
   | 'asc'
   | 'desc';
@@ -47,6 +60,13 @@ export type UpdateInvoiceFieldsInput = {
   vendorAddress?: string | null | undefined;
   vendorName?: string | null | undefined;
 };
+
+export type AssistantChatMutationVariables = Exact<{
+  messages: Array<ChatMessageInput> | ChatMessageInput;
+}>;
+
+
+export type AssistantChatMutation = { assistantChat: { reply: string, actions: Array<{ tool: string, ok: boolean, summary: string }>, pendingActions: Array<{ id: string, kind: PendingActionKind, invoiceId: string, summary: string, field: string | null, valueJson: string | null }> } };
 
 export type InvoiceRowFragment = { id: string, originalName: string, mimeType: string, status: InvoiceStatus, attempts: number, errorReason: string | null, warnings: Array<string>, vendorName: string | null, invoiceNumber: string | null, issueDate: string | null, total: number | null, currency: string | null, createdAt: string, updatedAt: string };
 
@@ -137,6 +157,26 @@ export const InvoiceRowFragmentDoc = new TypedDocumentString(`
   updatedAt
 }
     `, {"fragmentName":"InvoiceRow"}) as unknown as TypedDocumentString<InvoiceRowFragment, unknown>;
+export const AssistantChatDocument = new TypedDocumentString(`
+    mutation AssistantChat($messages: [ChatMessageInput!]!) {
+  assistantChat(messages: $messages) {
+    reply
+    actions {
+      tool
+      ok
+      summary
+    }
+    pendingActions {
+      id
+      kind
+      invoiceId
+      summary
+      field
+      valueJson
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<AssistantChatMutation, AssistantChatMutationVariables>;
 export const InvoicesDocument = new TypedDocumentString(`
     query Invoices($filter: InvoicesFilter) {
   invoices(filter: $filter) {

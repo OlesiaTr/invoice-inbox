@@ -4,6 +4,9 @@ import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { GraphQLModule } from '@nestjs/graphql';
 import type { Request } from 'express';
+import { AssistantResolver } from './assistant/assistant.resolver';
+import { AssistantService } from './assistant/assistant.service';
+import { McpController } from './assistant/mcp.controller';
 import { AccessCodeGuard, accessCodeMatches } from './common/access-code.guard';
 import { HealthController } from './common/health.controller';
 import { APP_CONFIG, type AppConfig } from './config/config';
@@ -35,12 +38,14 @@ import { InvoiceEventsService } from './realtime/invoice-events.service';
       }),
     }),
   ],
-  controllers: [InvoicesController, HealthController],
+  controllers: [InvoicesController, HealthController, McpController],
   providers: [
     { provide: APP_GUARD, useClass: AccessCodeGuard },
     InvoicesService,
     InvoicesResolver,
     InvoiceEventsService,
+    AssistantService,
+    AssistantResolver,
   ],
   exports: [InvoicesService],
 })

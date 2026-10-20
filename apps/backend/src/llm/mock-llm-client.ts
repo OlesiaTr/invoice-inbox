@@ -77,13 +77,15 @@ function routeIntent(text: string): ToolCall | null {
 }
 
 function summarize(content: string): string {
+  if (content.startsWith('NOT EXECUTED')) return 'I prepared that action — please review and confirm it below.';
+  if (content.startsWith('Error:')) return content.replace(/^Error:\s*/, 'Sorry, that failed: ');
   try {
     const data = JSON.parse(content) as unknown;
     if (data && typeof data === 'object' && 'items' in data && Array.isArray(data.items)) {
       if (data.items.length === 0) return 'No invoices match.';
       return data.items
         .map((i: Record<string, unknown>) =>
-          `- ${i.invoiceNumber ?? i.originalName} · ${i.status}${i.vendorName ? ` · ${i.vendorName}` : ''}${i.total != null ? ` · ${i.total} ${i.currency ?? ''}` : ''}`,
+          `- ${i.invoiceNumber ?? i.file} · ${i.status}${i.vendor ? ` · ${i.vendor}` : ''}${i.total != null ? ` · ${i.total} ${i.currency ?? ''}` : ''}`,
         )
         .join('\n');
     }

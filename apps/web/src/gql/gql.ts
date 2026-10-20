@@ -15,6 +15,7 @@ import * as types from './graphql';
  * Learn more about it here: https://the-guild.dev/graphql/codegen/plugins/presets/preset-client#reducing-bundle-size
  */
 type Documents = {
+    "\n  mutation AssistantChat($messages: [ChatMessageInput!]!) {\n    assistantChat(messages: $messages) {\n      reply\n      actions {\n        tool\n        ok\n        summary\n      }\n      pendingActions {\n        id\n        kind\n        invoiceId\n        summary\n        field\n        valueJson\n      }\n    }\n  }\n": typeof types.AssistantChatDocument,
     "\n  fragment InvoiceRow on Invoice {\n    id\n    originalName\n    mimeType\n    status\n    attempts\n    errorReason\n    warnings\n    vendorName\n    invoiceNumber\n    issueDate\n    total\n    currency\n    createdAt\n    updatedAt\n  }\n": typeof types.InvoiceRowFragmentDoc,
     "\n  query Invoices($filter: InvoicesFilter) {\n    invoices(filter: $filter) {\n      total\n      items {\n        ...InvoiceRow\n      }\n    }\n  }\n": typeof types.InvoicesDocument,
     "\n  query StatusCounts {\n    statusCounts {\n      all\n      uploaded\n      processing\n      completed\n      failed\n    }\n  }\n": typeof types.StatusCountsDocument,
@@ -26,6 +27,7 @@ type Documents = {
     "\n  subscription InvoiceEvents {\n    invoiceEvents {\n      type\n      id\n      status\n      updatedAt\n    }\n  }\n": typeof types.InvoiceEventsDocument,
 };
 const documents: Documents = {
+    "\n  mutation AssistantChat($messages: [ChatMessageInput!]!) {\n    assistantChat(messages: $messages) {\n      reply\n      actions {\n        tool\n        ok\n        summary\n      }\n      pendingActions {\n        id\n        kind\n        invoiceId\n        summary\n        field\n        valueJson\n      }\n    }\n  }\n": types.AssistantChatDocument,
     "\n  fragment InvoiceRow on Invoice {\n    id\n    originalName\n    mimeType\n    status\n    attempts\n    errorReason\n    warnings\n    vendorName\n    invoiceNumber\n    issueDate\n    total\n    currency\n    createdAt\n    updatedAt\n  }\n": types.InvoiceRowFragmentDoc,
     "\n  query Invoices($filter: InvoicesFilter) {\n    invoices(filter: $filter) {\n      total\n      items {\n        ...InvoiceRow\n      }\n    }\n  }\n": types.InvoicesDocument,
     "\n  query StatusCounts {\n    statusCounts {\n      all\n      uploaded\n      processing\n      completed\n      failed\n    }\n  }\n": types.StatusCountsDocument,
@@ -37,6 +39,10 @@ const documents: Documents = {
     "\n  subscription InvoiceEvents {\n    invoiceEvents {\n      type\n      id\n      status\n      updatedAt\n    }\n  }\n": types.InvoiceEventsDocument,
 };
 
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  mutation AssistantChat($messages: [ChatMessageInput!]!) {\n    assistantChat(messages: $messages) {\n      reply\n      actions {\n        tool\n        ok\n        summary\n      }\n      pendingActions {\n        id\n        kind\n        invoiceId\n        summary\n        field\n        valueJson\n      }\n    }\n  }\n"): typeof import('./graphql').AssistantChatDocument;
 /**
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
