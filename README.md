@@ -14,7 +14,7 @@ Upload invoices (PDF or image). They're processed asynchronously: a worker pulls
 
 ## Live demo
 
-**API:** https://invoice-inbox-api.onrender.com (health: `/api/health`).
+**Open the demo: https://invoice-inbox-bice.vercel.app** · API: https://invoice-inbox-api.onrender.com (health: `/api/health`)
 **Access code:** `invoice-inbox` (asked for on first visit; it only keeps random visitors out of the public demo, it isn't user authentication).
 
 > ⚠️ **The hosted demo runs entirely on free tiers and may not always work properly.** For a reliable review, please run it locally (see Quick start below): that's the reference setup.
