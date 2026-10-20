@@ -69,6 +69,7 @@ function routeIntent(text: string): ToolCall | null {
   if (/\bvendor|spen[dt]\b/.test(t)) return { name: 'get_stats', arguments: { groupBy: 'vendor' } };
   if (/\bmonth/.test(t)) return { name: 'get_stats', arguments: { groupBy: 'month' } };
   if (/how many|stats|count|summary|overview/.test(t)) return { name: 'get_stats', arguments: { groupBy: 'status' } };
+  if (/warning/.test(t)) return { name: 'list_invoices', arguments: { withWarnings: true } };
   const status = t.match(/\b(uploaded|processing|completed|failed)\b/)?.[1];
   if (status) return { name: 'list_invoices', arguments: { status } };
   if (ref) return { name: 'get_invoice', arguments: { ref } };

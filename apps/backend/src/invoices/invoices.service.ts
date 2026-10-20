@@ -35,6 +35,8 @@ export interface ListInvoicesQuery {
   vendor?: string;
   dateFrom?: string;
   dateTo?: string;
+  /** Only invoices whose sanity checks produced warnings. */
+  withWarnings?: boolean;
   sortBy?: SortField;
   sortDir?: 'asc' | 'desc';
   limit?: number;
@@ -96,6 +98,7 @@ export class InvoicesService {
   async list(q: ListInvoicesQuery) {
     const where: Prisma.InvoiceWhereInput = {
       status: q.status,
+      warnings: q.withWarnings ? { isEmpty: false } : undefined,
       vendorName: q.vendor ? { contains: q.vendor, mode: 'insensitive' } : undefined,
       issueDate:
         q.dateFrom || q.dateTo
