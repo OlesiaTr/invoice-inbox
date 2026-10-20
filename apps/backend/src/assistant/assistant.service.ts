@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { HttpException, Injectable, Logger } from '@nestjs/common';
-import { errorMessage } from '../invoices/domain/processing-errors';
+import { TransientProcessingError, errorMessage } from '../invoices/domain/processing-errors';
 import { InvoicesService } from '../invoices/invoices.service';
 import { ChatMessage, LlmClient, ToolCall } from '../llm/llm-client';
 import { TOOL_CHECK_PROMPT } from '../llm/prompts';
@@ -76,7 +76,19 @@ export class AssistantService {
     // Set when we asked the model to double-check a tool-less answer; holds that answer.
     let uncheckedReply: string | undefined;
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-      const res = await this.llm.chat(messages, this.toolSpecs);
+      let res;
+      try {
+        res = await this.llm.chat(messages, this.toolSpecs);
+      } catch (err) {
+        // Model overloaded/unreachable: a readable answer instead of a raw provider error.
+        if (!(err instanceof TransientProcessingError)) throw err;
+        this.logger.warn(`Assistant model unavailable: ${errorMessage(err)}`);
+        return {
+          reply: 'The AI model is busy or unreachable right now. Please try again in a moment.',
+          actions,
+          pendingActions,
+        };
+      }
       if (res.toolCalls.length === 0) {
         // No tool at all this turn: maybe answered from memory. Ask the model to check once.
         if (uncheckedReply === undefined && actions.length === 0 && pendingActions.length === 0) {

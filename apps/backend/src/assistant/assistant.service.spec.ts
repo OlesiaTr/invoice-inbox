@@ -1,5 +1,6 @@
 import { ConflictException } from '@nestjs/common';
 import { Invoice } from '@prisma/client';
+import { TransientProcessingError } from '../invoices/domain/processing-errors';
 import { InvoicesService } from '../invoices/invoices.service';
 import { ChatMessage, ChatResult, LlmClient } from '../llm/llm-client';
 import { AssistantService, userStatedValue } from './assistant.service';
@@ -168,6 +169,15 @@ describe('AssistantService', () => {
     const res = await service.chat(user('hello'));
     expect(llm.calls).toHaveLength(2);
     expect(res.reply).toBe('Hi! How can I help?');
+  });
+
+  it('answers readably when the model is unavailable', async () => {
+    const { service, llm } = setup([]);
+    llm.chat = async () => {
+      throw new TransientProcessingError('Gemini is overloaded');
+    };
+    const res = await service.chat(user('hello'));
+    expect(res.reply).toMatch(/busy or unreachable/);
   });
 
   it('stops a model that keeps calling tools', async () => {

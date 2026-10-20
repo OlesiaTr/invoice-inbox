@@ -30,7 +30,7 @@ describe('GeminiLlmClient', () => {
 
   it('requests JSON output constrained by the invoice schema', async () => {
     reply = candidate([{ text: '{"invoiceNumber":"INV-1"}' }]);
-    const client = new GeminiLlmClient('key', 'gemini-flash-latest', 5000, baseUrl);
+    const client = new GeminiLlmClient('key', 'gemini-flash-latest', 5000, { baseUrl });
 
     await expect(client.extractInvoice('Invoice INV-1')).resolves.toEqual({ invoiceNumber: 'INV-1' });
     expect(lastBody.generationConfig).toMatchObject({ responseMimeType: 'application/json', temperature: 0 });
@@ -40,7 +40,7 @@ describe('GeminiLlmClient', () => {
 
   it('maps tool calls and tool results to function calls and responses', async () => {
     reply = candidate([{ functionCall: { name: 'list_invoices', args: { status: 'failed' } } }]);
-    const client = new GeminiLlmClient('key', 'm', 5000, baseUrl);
+    const client = new GeminiLlmClient('key', 'm', 5000, { baseUrl, retryDelayMs: 0 });
 
     const res = await client.chat(
       [
@@ -62,7 +62,30 @@ describe('GeminiLlmClient', () => {
   it('treats rate limiting as transient', async () => {
     status = 429;
     reply = { error: { code: 429, message: 'Resource exhausted', status: 'RESOURCE_EXHAUSTED' } };
-    const client = new GeminiLlmClient('key', 'm', 5000, baseUrl);
+    const client = new GeminiLlmClient('key', 'm', 5000, { baseUrl, retryDelayMs: 0 });
     await expect(client.extractInvoice('x')).rejects.toBeInstanceOf(TransientProcessingError);
+  });
+
+  it('retries an overloaded model, then falls back to the next one', async () => {
+    const seen: string[] = [];
+    reply = undefined;
+    const overloaded = { error: { code: 503, message: 'This model is currently experiencing high demand.', status: 'UNAVAILABLE' } };
+    const ok = candidate([{ text: '{"invoiceNumber":"INV-9"}' }]);
+    const original = server.listeners('request')[0] as (...a: unknown[]) => void;
+    server.removeAllListeners('request');
+    server.on('request', async (req, res) => {
+      seen.push(req.url!.match(/models\/([^:]+):/)![1]);
+      for await (const _ of req) void _;
+      const busy = seen.at(-1) === 'primary';
+      res.statusCode = busy ? 503 : 200;
+      res.setHeader('content-type', 'application/json');
+      res.end(JSON.stringify(busy ? overloaded : ok));
+    });
+    const client = new GeminiLlmClient('key', 'primary', 5000, { baseUrl, fallbackModels: ['lite'], retryDelayMs: 0 });
+
+    await expect(client.extractInvoice('x')).resolves.toEqual({ invoiceNumber: 'INV-9' });
+    expect(seen).toEqual(['primary', 'primary', 'lite']);
+    server.removeAllListeners('request');
+    server.on('request', original);
   });
 });
