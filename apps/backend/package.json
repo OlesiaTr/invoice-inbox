@@ -11,7 +11,7 @@
     "prisma:migrate": "prisma migrate deploy",
     "prisma:generate": "prisma generate",
     "test": "jest",
-    "test:integration": "jest --config jest.integration.config.js --runInBand"
+    "test:integration": "NODE_OPTIONS=--experimental-vm-modules jest --config jest.integration.config.js --runInBand"
   },
   "dependencies": {
     "@apollo/server": "^5.5.1",
