@@ -21,6 +21,10 @@ export async function gql<TResult, TVariables>(
     markAccessCodeRequired();
     throw new AccessCodeRequiredError();
   }
+  // A proxy error page (e.g. 502 while the API restarts) is HTML, not JSON.
+  if (!res.headers.get('content-type')?.includes('json')) {
+    throw new Error(`The server is unavailable right now (HTTP ${res.status}). Try again in a moment.`);
+  }
   const body = (await res.json()) as { data?: TResult; errors?: { message: string }[] };
   if (body.errors?.length) {
     const message = body.errors[0].message;

@@ -213,6 +213,9 @@ export async function uploadInvoice(file: File): Promise<UploadResult> {
     markAccessCodeRequired();
     throw new AccessCodeRequiredError();
   }
+  if (!res.headers.get('content-type')?.includes('json')) {
+    throw new Error(`The server is unavailable right now (HTTP ${res.status}). Try again in a moment.`);
+  }
   const json = await res.json();
   if (!res.ok) throw new Error(Array.isArray(json.message) ? json.message.join(', ') : json.message);
   return json as UploadResult;
