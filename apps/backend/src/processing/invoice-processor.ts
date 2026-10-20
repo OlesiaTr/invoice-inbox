@@ -7,7 +7,7 @@ import { PermanentProcessingError, TransientProcessingError, errorMessage } from
 import { LlmClient } from '../llm/llm-client';
 import { PrismaService } from '../prisma/prisma.service';
 import { InvoiceJob, JobQueue, QueueMessage } from '../queue/job-queue';
-import { FileStorage } from '../storage/file-storage';
+import { FileNotFoundError, FileStorage } from '../storage/file-storage';
 import { TextExtractor } from './text-extractor';
 
 export type ProcessOutcome =
@@ -56,7 +56,11 @@ export class InvoiceProcessor {
 
     let rawText: string | undefined;
     try {
-      const file = await this.storage.get(invoice.storageKey);
+      const file = await this.storage.get(invoice.storageKey).catch((err: unknown) => {
+        // No amount of retrying brings a missing file back.
+        if (err instanceof FileNotFoundError) throw new PermanentProcessingError(err.message);
+        throw err;
+      });
       rawText = await this.extractor.extract(file, invoice.mimeType);
       const parsed = extractedInvoiceSchema.safeParse(await this.llm.extractInvoice(rawText));
       if (!parsed.success) {

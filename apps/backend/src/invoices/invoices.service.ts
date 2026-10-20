@@ -12,7 +12,7 @@ import { Invoice, InvoiceStatus, Prisma } from '@prisma/client';
 import { APP_CONFIG, type AppConfig } from '../config/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { JobQueue } from '../queue/job-queue';
-import { FileStorage } from '../storage/file-storage';
+import { FileNotFoundError, FileStorage } from '../storage/file-storage';
 import { EXTENSIONS, detectFileType } from './domain/file-type';
 import { InvoiceFieldsPatch, extractedInvoiceSchema, promotedColumns, sanityCheck } from './domain/invoice-data';
 import { assertTransition, InvalidTransitionError } from './domain/invoice-status';
@@ -179,7 +179,17 @@ export class InvoicesService {
 
   async getFile(id: string): Promise<{ invoice: Invoice; body: Buffer }> {
     const invoice = await this.get(id);
-    return { invoice, body: await this.storage.get(invoice.storageKey) };
+    try {
+      return { invoice, body: await this.storage.get(invoice.storageKey) };
+    } catch (err) {
+      // The row outlived its file (a half-finished delete, or storage restored separately).
+      // Say so, rather than letting it surface as an unhandled 500.
+      if (err instanceof FileNotFoundError) {
+        this.logger.warn(`Invoice ${id} has no stored file at ${invoice.storageKey}`);
+        throw new NotFoundException(`The uploaded file for invoice ${id} is no longer available`);
+      }
+      throw err;
+    }
   }
 
   /** Manual retry: only from `failed`. Status reset and new job commit together. */
