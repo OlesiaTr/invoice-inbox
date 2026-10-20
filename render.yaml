@@ -19,7 +19,7 @@ services:
       - key: LLM_DRIVER
         value: gemini
       - key: GEMINI_MODEL
-        value: gemini-2.5-flash
+        value: gemini-flash-latest
       - key: STORAGE_DRIVER
         value: s3
       - key: S3_BUCKET
