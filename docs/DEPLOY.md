@@ -14,15 +14,20 @@ Only configuration differs from the local setup: adapters (`LLM_DRIVER`, `STORAG
 - **API and worker share one instance**, because free tiers don't include background workers. Locally and in a real deployment they run separately.
 - **The instance sleeps after ~15 min idle.** The first request then takes about a minute. Jobs queued meanwhile wait safely in Postgres.
 - **Gemini's free tier may use prompts to improve Google's products.** Use only the sample invoices in the demo.
+- **Gemini's free tier is often overloaded** (503 "high demand"). The adapter retries once, then falls back to `GEMINI_FALLBACK_MODELS` (default `gemini-flash-lite-latest`); the queue retries extraction with backoff.
 - **The Supabase project pauses after 7 days of inactivity.** Open the demo shortly before sending the link.
 
 ## 1. Supabase
 
 1. Create a project (an EU region is fine) and note the database password.
-2. **Enable the queue extension:** Database → Extensions → enable `pgmq`. (The migration also tries `CREATE EXTENSION pgmq` itself.)
+2. **Enable the queue extension** in the SQL Editor: `create extension if not exists pgmq;`
+   (The dashboard's Extensions toggle failed with `schema "pgmq" does not exist`; plain SQL works. The migration also tries `CREATE EXTENSION pgmq` itself.)
 3. **Get the connection strings:** Connect → *ORMs / Prisma*.
-   - `DATABASE_URL` is the **transaction pooler** (port 6543). Append `?pgbouncer=true`.
+   - `DATABASE_URL` is the **transaction pooler** (port 6543). Append `?pgbouncer=true&connection_limit=5`.
+     Without `pgbouncer=true`, Prisma's named prepared statements collide on shared pooled connections (`prepared statement "s0" already exists`).
    - `DIRECT_URL` is the **session pooler** (port 5432 on the pooler host). Migrations and `LISTEN` need a session connection, which the transaction pooler can't hold.
+   - Not the "Direct connection": on the free tier it's IPv6-only, which Render can't reach.
+   - Use a password with only letters and digits, or URL-encode it: special characters break the connection string.
 4. **Set up Storage:**
    1. Create a **private** bucket named `invoices`.
    2. Storage → Settings → **S3 connection**: enable it and copy the endpoint (`https://<ref>.supabase.co/storage/v1/s3`) and the region.
@@ -57,9 +62,12 @@ git push mirror master
 
 1. **Add New → Project**, then pick the mirror repo.
 2. Set **Root Directory** to `apps/web`. The framework preset (Vite) is detected automatically.
+   Ignore Vercel's "multi-service project" suggestion: the backend runs on Render, because it needs a long-running process (worker, `LISTEN`, WebSockets).
 3. Add the environment variable `VITE_API_URL=https://<service>.onrender.com`.
 4. **Deploy.**
 5. Back in Render, set `CORS_ORIGIN=https://<project>.vercel.app` and redeploy.
+
+**Gotcha:** on the Hobby plan, Vercel only deploys commits whose author email belongs to your GitHub account. Add the commit email under GitHub → Settings → Emails if a deployment is "blocked".
 
 ## 6. Smoke test
 
