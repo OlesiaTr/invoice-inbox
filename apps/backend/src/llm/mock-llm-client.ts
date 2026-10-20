@@ -1,5 +1,6 @@
 import { TransientProcessingError } from '../invoices/domain/processing-errors';
 import { ChatMessage, ChatResult, LlmClient, ToolCall } from './llm-client';
+import { TOOL_CHECK_PROMPT } from './prompts';
 
 /**
  * Deterministic stand-in for a real model: regex extraction and keyword-routed tool calls.
@@ -43,6 +44,10 @@ export class MockLlmClient extends LlmClient {
     if (last.role === 'tool') {
       const results = messages.slice(messages.findLastIndex((m) => m.role !== 'tool') + 1);
       return { content: results.map((r) => summarize(r.content)).join('\n\n'), toolCalls: [] };
+    }
+    // The self-check prompt: the mock's routing is deterministic, so just repeat the answer.
+    if (last.role === 'user' && last.content === TOOL_CHECK_PROMPT) {
+      return { content: messages[messages.length - 2].content, toolCalls: [] };
     }
     const text = last.content;
     const call = routeIntent(text);
