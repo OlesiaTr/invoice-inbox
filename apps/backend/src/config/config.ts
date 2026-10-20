@@ -28,7 +28,7 @@ const configSchema = z.object({
   OLLAMA_URL: z.string().default('http://localhost:11434'),
   OLLAMA_MODEL: z.string().default('qwen2.5:7b'),
   GEMINI_API_KEY: optional,
-  GEMINI_MODEL: z.string().default('gemini-2.5-flash'),
+  GEMINI_MODEL: z.string().default('gemini-flash-latest'),
   LLM_TIMEOUT_SECONDS: z.coerce.number().int().default(90),
 
   WORKER_CONCURRENCY: z.coerce.number().int().min(1).default(2),

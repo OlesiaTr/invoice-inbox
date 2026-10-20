@@ -30,7 +30,7 @@ describe('GeminiLlmClient', () => {
 
   it('requests JSON output constrained by the invoice schema', async () => {
     reply = candidate([{ text: '{"invoiceNumber":"INV-1"}' }]);
-    const client = new GeminiLlmClient('key', 'gemini-2.5-flash', 5000, baseUrl);
+    const client = new GeminiLlmClient('key', 'gemini-flash-latest', 5000, baseUrl);
 
     await expect(client.extractInvoice('Invoice INV-1')).resolves.toEqual({ invoiceNumber: 'INV-1' });
     expect(lastBody.generationConfig).toMatchObject({ responseMimeType: 'application/json', temperature: 0 });
