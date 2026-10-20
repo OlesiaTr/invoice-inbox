@@ -137,12 +137,15 @@ export const ASSISTANT_TOOLS = [
   tool({
     name: 'update_invoice_field',
     description:
-      'Correct one extracted header field of a COMPLETED invoice (e.g. a wrong total or vendor). Line items cannot be edited. Requires the user to confirm in the UI.',
+      'Correct one extracted header field of a COMPLETED invoice to a value the user explicitly stated (e.g. "set the total to 120"). Line items cannot be edited and fields cannot be cleared. Requires the user to confirm in the UI.',
     destructive: true,
     schema: z.object({
       ref,
       field: z.enum(EDITABLE_FIELDS),
-      value: z.union([z.string(), z.number(), z.null()]).describe('New value; dates as YYYY-MM-DD, amounts as numbers'),
+      // No null: the assistant may correct values but not erase them (users can, in the UI).
+      value: z
+        .union([z.string().min(1), z.number()])
+        .describe('The new value the user explicitly gave; dates as YYYY-MM-DD, amounts as numbers'),
     }),
     preview: async (a, invoices) => {
       const i = await invoices.findByRef(a.ref);

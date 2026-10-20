@@ -93,6 +93,16 @@ describe('AssistantService', () => {
     });
   });
 
+  it('does not let the assistant clear a field', async () => {
+    const { service, llm } = setup([
+      { content: '', toolCalls: [{ name: 'update_invoice_field', arguments: { ref: 'INV-1', field: 'total', value: null } }] },
+    ]);
+    const res = await service.chat(user('fix the total'));
+
+    expect(res.pendingActions).toEqual([]);
+    expect(llm.calls[1].at(-1)!.content).toMatch(/^Error: invalid arguments for update_invoice_field/);
+  });
+
   it('refuses a no-op edit instead of asking the user to confirm nothing', async () => {
     const { service, llm } = setup([
       { content: '', toolCalls: [{ name: 'update_invoice_field', arguments: { ref: 'INV-1', field: 'total', value: 1000 } }] },
