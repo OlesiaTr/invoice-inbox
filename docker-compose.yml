@@ -1,5 +1,31 @@
 name: invoices
 
+# docker compose up --build            → everything, AI via Ollama running natively on the host (Mac: uses the GPU)
+# LLM_DRIVER=mock docker compose up    → no AI model needed at all
+# docker compose --profile ollama up   → also run Ollama in a container (Linux), with OLLAMA_URL=http://ollama:11434
+
+x-backend: &backend
+  build:
+    context: .
+    dockerfile: apps/backend/Dockerfile
+  restart: unless-stopped
+  environment: &backend-env
+    DATABASE_URL: postgresql://invoices:invoices@db:5432/invoices
+    DIRECT_URL: postgresql://invoices:invoices@db:5432/invoices
+    STORAGE_DRIVER: local
+    STORAGE_LOCAL_DIR: /data/storage
+    LLM_DRIVER: ${LLM_DRIVER:-ollama}
+    OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
+    OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:7b}
+    ACCESS_CODE: ${ACCESS_CODE:-}
+  volumes:
+    - files:/data/storage
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+  depends_on:
+    migrate:
+      condition: service_completed_successfully
+
 services:
   db:
     image: postgres:17
@@ -19,5 +45,48 @@ services:
       timeout: 3s
       retries: 30
 
+  migrate:
+    <<: *backend
+    restart: "no"
+    command: ["pnpm", "exec", "prisma", "migrate", "deploy"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  api:
+    <<: *backend
+    environment:
+      <<: *backend-env
+      PROCESS_ROLE: api
+    ports:
+      - "3000:3000"
+
+  worker:
+    <<: *backend
+    environment:
+      <<: *backend-env
+      PROCESS_ROLE: worker
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-2}
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+
+  ollama:
+    image: ollama/ollama:0.12.6
+    profiles: ["ollama"]
+    volumes:
+      - ollama-models:/root/.ollama
+    ports:
+      - "11434:11434"
+
 volumes:
   db-data:
+  files:
+  ollama-models:
