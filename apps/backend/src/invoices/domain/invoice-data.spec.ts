@@ -47,6 +47,13 @@ describe('sanityCheck', () => {
     expect(sanityCheck({ ...base, total: 150 })).toContainEqual(expect.stringContaining('does not equal total'));
   });
 
+  it('still checks the total when no tax amount was found', () => {
+    expect(sanityCheck({ ...base, tax: null, total: 150 })).toContainEqual(
+      expect.stringContaining('Subtotal (100.00) does not equal total (150.00) and no tax amount was found'),
+    );
+    expect(sanityCheck({ ...base, tax: null, total: 100 })).toEqual([]);
+  });
+
   it('flags line items that do not add up', () => {
     const lineItems = [{ description: 'x', quantity: 1, unitPrice: 50, amount: 50 }];
     expect(sanityCheck({ ...base, lineItems })).toContainEqual(expect.stringContaining('Line items add up to 50.00'));
