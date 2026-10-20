@@ -18,8 +18,11 @@ export interface AssistantTool<A = Record<string, unknown>> {
    * action the user confirms with a click (enforced here in code, not by the prompt).
    */
   destructive: boolean;
-  /** Argument that must literally come from the user's message (never chosen by the model). */
-  userStatedArg?: string;
+  /**
+   * Arguments that, when present, must come from the user's message — never chosen by the
+   * model (an edit value, or a filter like a currency the user didn't ask for).
+   */
+  userStatedArgs?: string[];
   run(args: A, invoices: InvoicesService): Promise<unknown>;
   /** For destructive tools: what exactly will happen, resolved to a concrete invoice. */
   preview?(args: A, invoices: InvoicesService): Promise<PendingActionPreview>;
@@ -99,9 +102,13 @@ export const ASSISTANT_TOOLS = [
     description:
       'Aggregates: count by status, or count and total amount per vendor or per month (completed invoices; totals are per currency).',
     destructive: false,
+    userStatedArgs: ['currency'],
     schema: z.object({
       groupBy: z.enum(['status', 'vendor', 'month']),
-      currency: z.string().optional().describe('ISO code to restrict totals to, e.g. EUR'),
+      currency: z
+        .string()
+        .optional()
+        .describe('Only if the user asked for one currency. Omit it to get totals for all currencies.'),
     }),
     run: (a, invoices) => invoices.stats(a.groupBy, a.currency),
   }),
@@ -141,7 +148,7 @@ export const ASSISTANT_TOOLS = [
     description:
       'Correct one extracted header field of a COMPLETED invoice to a value the user explicitly stated (e.g. "set the total to 120"). Line items cannot be edited and fields cannot be cleared. Requires the user to confirm in the UI.',
     destructive: true,
-    userStatedArg: 'value',
+    userStatedArgs: ['value'],
     schema: z.object({
       ref,
       field: z.enum(EDITABLE_FIELDS),

@@ -1,7 +1,13 @@
+import { mkdtemp, symlink } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import type { Worker as OcrWorker } from 'tesseract.js';
 import type { SupportedMimeType } from '../invoices/domain/file-type';
 import { PermanentProcessingError, errorMessage } from '../invoices/domain/processing-errors';
+
+// English + Ukrainian: Latin and Cyrillic invoices. More languages = slower OCR.
+const OCR_LANGUAGES = ['eng', 'ukr'];
 
 // Below this, a "PDF" has no real text layer (e.g. a scan).
 const MIN_TEXT_LENGTH = 20;
@@ -52,10 +58,14 @@ export class TextExtractor implements OnModuleDestroy {
   private ocrWorker(): Promise<OcrWorker> {
     this.ocr ??= (async () => {
       const { createWorker } = await import('tesseract.js');
-      // Bundled English model (npm package) — no download at runtime.
-      const { langPath, gzip } = require('@tesseract.js-data/eng') as { langPath: string; gzip: boolean };
-      // cacheMethod none: the model is already local, don't write a copy into the working dir.
-      return createWorker('eng', 1, { langPath, gzip, cacheMethod: 'none' });
+      // Language models ship as npm packages (no download at runtime). tesseract.js reads all
+      // languages from one directory, so the per-package files are linked into a temp dir.
+      const dir = await mkdtemp(join(tmpdir(), 'tessdata-'));
+      for (const lang of OCR_LANGUAGES) {
+        const { langPath } = require(`@tesseract.js-data/${lang}`) as { langPath: string };
+        await symlink(join(langPath, `${lang}.traineddata.gz`), join(dir, `${lang}.traineddata.gz`));
+      }
+      return createWorker(OCR_LANGUAGES, 1, { langPath: dir, gzip: true, cacheMethod: 'none' });
     })();
     return this.ocr;
   }

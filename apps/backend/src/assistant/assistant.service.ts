@@ -114,9 +114,11 @@ export class AssistantService {
 
     try {
       // Values for edits must come from the user, not the model: enforced, not just prompted.
-      const stated = tool.userStatedArg ? (parsed.data as Record<string, unknown>)[tool.userStatedArg] : undefined;
-      if (tool.userStatedArg && !userStatedValue(lastUserText, stated)) {
-        return `Error: the user did not state the value ${JSON.stringify(stated)}. Do not guess values: ask the user what the correct value is.`;
+      for (const arg of tool.userStatedArgs ?? []) {
+        const value = (parsed.data as Record<string, unknown>)[arg];
+        if (value !== undefined && !userStatedValue(lastUserText, value)) {
+          return `Error: the user did not mention ${arg} ${JSON.stringify(value)}. Never add values the user didn't give: for an edit, ask the user for the value; for a filter, call the tool again without it.`;
+        }
       }
       if (tool.destructive) {
         const preview = await tool.preview!(parsed.data, this.invoices);

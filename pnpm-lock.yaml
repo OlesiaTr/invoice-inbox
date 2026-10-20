@@ -46,6 +46,9 @@ importers:
       '@tesseract.js-data/eng':
         specifier: ^1.0.0
         version: 1.0.0
+      '@tesseract.js-data/ukr':
+        specifier: ^1.0.0
+        version: 1.0.0
       graphql:
         specifier: ^16.14.2
         version: 16.14.2
@@ -2429,6 +2432,9 @@ packages:
 
   '@tesseract.js-data/eng@1.0.0':
     resolution: {integrity: sha512-mbTumm6KQPUHyzTPQaF3ObXYnx0SqqfV2nabqFVQBwD6Kl7PhGSLSzOlfFTWy0P3BjghaSKA2W9GB19Jk+ZcTg==}
+
+  '@tesseract.js-data/ukr@1.0.0':
+    resolution: {integrity: sha512-W/i5g9xbyBHJxklEb0mU2iLENBzU9CgXk1LVg82aQ95IaRwNFjY1z5y0vMcydEHQLx/TeawGrHiqlWoyXWCDzA==}
 
   '@testing-library/dom@10.4.2':
     resolution: {integrity: sha512-yzr2S9HyAIdhz2/6qHgbs665Q7PKVcDF05vsOlHPxG1mo36gKVesdYVeDLnXgfjJ03CrKRk08knc6+E/9m8v2Q==}
@@ -8285,6 +8291,8 @@ snapshots:
   '@tanstack/table-core@8.21.3': {}
 
   '@tesseract.js-data/eng@1.0.0': {}
+
+  '@tesseract.js-data/ukr@1.0.0': {}
 
   '@testing-library/dom@10.4.2':
     dependencies:

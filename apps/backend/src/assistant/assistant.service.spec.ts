@@ -100,7 +100,15 @@ describe('AssistantService', () => {
     const res = await service.chat(user("let's correct the sum of INV-1"));
 
     expect(res.pendingActions).toEqual([]);
-    expect(llm.calls[1].at(-1)!.content).toMatch(/user did not state the value 150.5/);
+    expect(llm.calls[1].at(-1)!.content).toMatch(/user did not mention value 150.5/);
+  });
+
+  it('rejects a filter the user did not ask for', async () => {
+    const { service, llm } = setup([
+      { content: '', toolCalls: [{ name: 'get_stats', arguments: { groupBy: 'vendor', currency: 'EUR' } }] },
+    ]);
+    await service.chat(user('How much did we spend per vendor?'));
+    expect(llm.calls[1].at(-1)!.content).toMatch(/did not mention currency "EUR".*call the tool again without it/);
   });
 
   it('does not let the assistant clear a field', async () => {

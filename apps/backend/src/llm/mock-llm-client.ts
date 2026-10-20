@@ -141,6 +141,7 @@ function findDate(text: string, label: RegExp): string | null {
 function detectCurrency(text: string): string | null {
   const code = text.match(/\b(EUR|USD|GBP|UAH|PLN|CHF)\b/)?.[1];
   if (code) return code;
+  if (/грн|₴/.test(text)) return 'UAH';
   if (text.includes('€')) return 'EUR';
   if (text.includes('£')) return 'GBP';
   if (text.includes('$')) return 'USD';
