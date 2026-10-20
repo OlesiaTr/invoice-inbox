@@ -26,4 +26,4 @@ export function extractionUserPrompt(invoiceText: string): string {
 export const TOOL_CHECK_PROMPT =
   '[Automatic check, not written by the user] You answered without calling any tool. ' +
   'If the request is about invoices (statuses, data, totals) or asks for an action, call the right tool now ' +
-  'and answer only from its result. If no tool is needed (greeting, clarifying question), repeat your answer unchanged.';
+  'and answer only from its result. If no tool is needed (greeting, clarifying question), reply with just: OK';

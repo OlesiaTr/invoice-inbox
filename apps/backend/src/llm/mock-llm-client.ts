@@ -45,9 +45,9 @@ export class MockLlmClient extends LlmClient {
       const results = messages.slice(messages.findLastIndex((m) => m.role !== 'tool') + 1);
       return { content: results.map((r) => summarize(r.content)).join('\n\n'), toolCalls: [] };
     }
-    // The self-check prompt: the mock's routing is deterministic, so just repeat the answer.
+    // The self-check prompt: the mock's routing is deterministic, so nothing to correct.
     if (last.role === 'user' && last.content === TOOL_CHECK_PROMPT) {
-      return { content: messages[messages.length - 2].content, toolCalls: [] };
+      return { content: 'OK', toolCalls: [] };
     }
     const text = last.content;
     const call = routeIntent(text);

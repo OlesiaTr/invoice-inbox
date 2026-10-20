@@ -160,10 +160,10 @@ describe('AssistantService', () => {
     expect(invoices.delete).not.toHaveBeenCalled();
   });
 
-  it('checks only once, so a plain answer still comes back', async () => {
+  it('keeps the original answer when the check finds no tool was needed', async () => {
     const { service, llm } = setup([
       { content: 'Hi! How can I help?', toolCalls: [] },
-      { content: 'Hi! How can I help?', toolCalls: [] },
+      { content: 'OK', toolCalls: [] },
     ]);
     const res = await service.chat(user('hello'));
     expect(llm.calls).toHaveLength(2);
