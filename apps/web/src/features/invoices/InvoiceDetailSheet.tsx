@@ -9,6 +9,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { UpdateInvoiceFieldsInput } from '@/gql/graphql';
+import { CopyButton } from '@/shared/CopyButton';
 import { formatDate, formatMoney } from '@/shared/format';
 import { invoiceFileUrl, useInvoice, useRetryInvoice, useUpdateInvoiceFields, type InvoiceDetail } from './api';
 import { StatusBadge } from './StatusBadge';
@@ -21,8 +22,9 @@ export function InvoiceDetailSheet({ id, onClose }: { id?: string; onClose: () =
     <Sheet open={!!id} onOpenChange={(open) => !open && onClose()}>
       <SheetContent className="w-full overflow-y-auto p-0 sm:max-w-2xl">
         <SheetHeader className="border-b border-border p-6 pr-12">
-          <SheetTitle className="truncate text-lg">
-            {invoice ? (invoice.invoiceNumber ?? invoice.originalName) : 'Invoice'}
+          <SheetTitle className="flex min-w-0 items-center gap-1 text-lg">
+            <span className="truncate">{invoice ? (invoice.invoiceNumber ?? invoice.originalName) : 'Invoice'}</span>
+            {invoice?.invoiceNumber && <CopyButton value={invoice.invoiceNumber} label="Copy invoice number" />}
           </SheetTitle>
           <SheetDescription asChild>
             <div className="flex flex-wrap items-center gap-2">
