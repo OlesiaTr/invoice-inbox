@@ -16,18 +16,23 @@ const amount = z.preprocess((v) => {
   return null;
 }, z.number().nullable());
 
+const pad2 = (n: number) => String(n).padStart(2, '0');
+
 /** Lenient date: normalised to YYYY-MM-DD, unparseable → null. */
 const isoDate = z.preprocess((v) => {
   if (typeof v !== 'string' || !v.trim()) return null;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
-  const t = Date.parse(v);
-  return Number.isNaN(t) ? null : new Date(t).toISOString().slice(0, 10);
+  const s = v.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const t = Date.parse(s);
+  if (Number.isNaN(t)) return null;
+  // A date with no time parses as *local* midnight, so reading it back with toISOString()
+  // would shift it to the previous day for every timezone east of UTC ("September 1, 2026"
+  // → 2026-08-31). Read the local calendar date instead, which never moves.
+  const d = new Date(t);
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 }, z.string().nullable());
 
-const text = z.preprocess(
-  (v) => (typeof v === 'string' && v.trim() ? v.trim() : null),
-  z.string().nullable(),
-);
+const text = z.preprocess((v) => (typeof v === 'string' && v.trim() ? v.trim() : null), z.string().nullable());
 
 export const lineItemSchema = z.object({
   description: z.string(),
@@ -50,7 +55,7 @@ export const extractedInvoiceSchema = z.object({
   subtotal: amount,
   tax: amount,
   total: amount,
-  lineItems: z.preprocess((v) => (Array.isArray(v) ? v : []), z.array(lineItemSchema)),
+  lineItems: z.preprocess((v): unknown[] => (Array.isArray(v) ? v : []), z.array(lineItemSchema)),
 });
 
 export type ExtractedInvoice = z.infer<typeof extractedInvoiceSchema>;
@@ -135,9 +140,7 @@ export function sanityCheck(d: ExtractedInvoice): string[] {
 
   if (d.subtotal != null && d.total != null) {
     if (d.tax != null && !close(d.subtotal + d.tax, d.total)) {
-      warnings.push(
-        `Subtotal (${money(d.subtotal)}) + tax (${money(d.tax)}) does not equal total (${money(d.total)})`,
-      );
+      warnings.push(`Subtotal (${money(d.subtotal)}) + tax (${money(d.tax)}) does not equal total (${money(d.total)})`);
     }
     // Missing tax must not silently skip the check: then subtotal alone should match the total.
     if (d.tax == null && !close(d.subtotal, d.total)) {
