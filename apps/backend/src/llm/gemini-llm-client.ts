@@ -59,7 +59,7 @@ export class GeminiLlmClient extends LlmClient {
               })),
             },
           ],
-          temperature: 0.2,
+          temperature: 0,
         },
       }),
     );
