@@ -13,9 +13,9 @@ services:
       - key: PROCESS_ROLE
         value: all
       - key: MIGRATE_ON_START
-        value: "true"
+        value: 'true'
       - key: WORKER_CONCURRENCY
-        value: "1"
+        value: '1'
       - key: LLM_DRIVER
         value: gemini
       - key: GEMINI_MODEL

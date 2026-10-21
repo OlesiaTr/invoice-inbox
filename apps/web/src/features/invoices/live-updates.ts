@@ -1,21 +1,9 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
-import { graphql } from '@/gql';
-import type { InvoiceEventsSubscription } from '@/gql/graphql';
+import { InvoiceEventsDocument, type InvoiceEventsSubscription } from '@/gql/graphql';
 import { onWsConnected, wsClient } from '@/shared/ws';
 import { invoiceKeys, patchInvoiceInLists, type InvoicesPage } from './api';
-
-const InvoiceEventsSubscriptionDoc = graphql(`
-  subscription InvoiceEvents {
-    invoiceEvents {
-      type
-      id
-      status
-      updatedAt
-    }
-  }
-`);
 
 type InvoiceEvent = InvoiceEventsSubscription['invoiceEvents'];
 
@@ -28,7 +16,7 @@ type InvoiceEvent = InvoiceEventsSubscription['invoiceEvents'];
  * - After a WebSocket reconnect (or a server-side RESYNC) everything is refetched,
  *   because events sent while we were offline are lost: the DB is the source of truth.
  */
-export function useInvoiceLiveUpdates() {
+export const useInvoiceLiveUpdates = () => {
   const qc = useQueryClient();
   const refetchTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -56,7 +44,7 @@ export function useInvoiceLiveUpdates() {
     };
 
     const unsubscribe = wsClient().subscribe<{ invoiceEvents: InvoiceEvent }>(
-      { query: InvoiceEventsSubscriptionDoc.toString() },
+      { query: InvoiceEventsDocument.toString() },
       {
         next: ({ data }) => data && handle(data.invoiceEvents),
         error: () => undefined, // graphql-ws retries; the reconnect handler resyncs
@@ -71,17 +59,17 @@ export function useInvoiceLiveUpdates() {
       clearTimeout(refetchTimer.current);
     };
   }, [qc]);
-}
+};
 
-function findCachedStatus(qc: ReturnType<typeof useQueryClient>, id: string) {
+const findCachedStatus = (qc: ReturnType<typeof useQueryClient>, id: string) => {
   for (const [, page] of qc.getQueriesData<InvoicesPage>({ queryKey: invoiceKeys.lists() })) {
     const row = page?.items.find((r) => r.id === id);
     if (row) return row.status;
   }
   return undefined;
-}
+};
 
-function notify(e: InvoiceEvent, qc: ReturnType<typeof useQueryClient>) {
+const notify = (e: InvoiceEvent, qc: ReturnType<typeof useQueryClient>) => {
   let name = 'Invoice';
   for (const [, page] of qc.getQueriesData<InvoicesPage>({ queryKey: invoiceKeys.lists() })) {
     const row = page?.items.find((r) => r.id === e.id);
@@ -89,4 +77,4 @@ function notify(e: InvoiceEvent, qc: ReturnType<typeof useQueryClient>) {
   }
   if (e.status === 'completed') toast.success(`${name} processed`);
   if (e.status === 'failed') toast.error(`${name} failed`, { description: 'Open it to see why, or retry.' });
-}
+};

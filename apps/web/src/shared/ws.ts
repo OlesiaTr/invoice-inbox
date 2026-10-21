@@ -7,7 +7,7 @@ const connectedListeners = new Set<(isReconnect: boolean) => void>();
 let connectedOnce = false;
 
 /** One WebSocket per tab; graphql-ws reconnects with backoff on its own. */
-export function wsClient(): Client {
+export const wsClient = (): Client => {
   client ??= createClient({
     url: WS_URL,
     connectionParams: () => ({ accessCode: getAccessCode() }),
@@ -21,10 +21,10 @@ export function wsClient(): Client {
     },
   });
   return client;
-}
+};
 
 /** `isReconnect` is true after a drop: events may have been missed, so callers resync. */
-export function onWsConnected(listener: (isReconnect: boolean) => void): () => void {
+export const onWsConnected = (listener: (isReconnect: boolean) => void): (() => void) => {
   connectedListeners.add(listener);
   return () => connectedListeners.delete(listener);
-}
+};

@@ -1,4 +1,4 @@
-import { ExtractedInvoice, extractedInvoiceSchema, promotedColumns, sanityCheck } from './invoice-data';
+import { type ExtractedInvoice, extractedInvoiceSchema, promotedColumns, sanityCheck } from './invoice-data';
 
 const base: ExtractedInvoice = {
   invoiceNumber: 'INV-1',
@@ -36,6 +36,17 @@ describe('extractedInvoiceSchema (lenient parsing of model output)', () => {
   it('turns an unknown currency string into null instead of failing', () => {
     expect(extractedInvoiceSchema.parse({ ...base, currency: 'Euros' }).currency).toBeNull();
   });
+
+  // Regression: normalising via toISOString() moved the day back for every timezone east
+  // of UTC, because a date with no time parses as local midnight.
+  it.each([
+    ['September 1, 2026', '2026-09-01'],
+    ['01/09/2026', '2026-01-09'],
+    ['2026-09-01', '2026-09-01'],
+    ['1 Sep 2026', '2026-09-01'],
+  ])('normalises %s to %s regardless of the machine timezone', (input, expected) => {
+    expect(extractedInvoiceSchema.parse({ ...base, issueDate: input }).issueDate).toBe(expected);
+  });
 });
 
 describe('sanityCheck', () => {
@@ -66,7 +77,11 @@ describe('sanityCheck', () => {
   it('flags missing key fields and impossible dates', () => {
     const warnings = sanityCheck({ ...base, total: null, invoiceNumber: null, dueDate: '2026-08-01' });
     expect(warnings).toEqual(
-      expect.arrayContaining(['Total amount not found', 'Invoice number not found', 'Due date is before the issue date']),
+      expect.arrayContaining([
+        'Total amount not found',
+        'Invoice number not found',
+        'Due date is before the issue date',
+      ]),
     );
   });
 });

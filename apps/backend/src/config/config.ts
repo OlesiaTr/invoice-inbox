@@ -14,7 +14,10 @@ const configSchema = z.object({
   PORT: z.coerce.number().int().default(3000),
   ACCESS_CODE: optional,
   CORS_ORIGIN: z.string().default('http://localhost:5173'),
-  MAX_UPLOAD_BYTES: z.coerce.number().int().default(10 * 1024 * 1024),
+  MAX_UPLOAD_BYTES: z.coerce
+    .number()
+    .int()
+    .default(10 * 1024 * 1024),
 
   STORAGE_DRIVER: z.enum(['local', 's3']).default('local'),
   STORAGE_LOCAL_DIR: z.string().default('./storage'),
@@ -43,19 +46,19 @@ export type AppConfig = z.infer<typeof configSchema>;
 
 export const APP_CONFIG = Symbol('APP_CONFIG');
 
-export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
+export const loadConfig = (env: NodeJS.ProcessEnv = process.env): AppConfig => {
   const result = configSchema.safeParse(env);
   if (!result.success) {
     throw new Error(`Invalid configuration:\n${z.prettifyError(result.error)}`);
   }
   return result.data;
-}
+};
 
 /** Loads `.env` from the working directory if present (Node's built-in loader). */
-export function loadDotEnv(): void {
+export const loadDotEnv = (): void => {
   try {
     process.loadEnvFile();
   } catch {
     // No .env file: rely on the real environment (Docker, hosting platform).
   }
-}
+};

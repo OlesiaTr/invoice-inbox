@@ -8,7 +8,7 @@ import { InvoiceProcessor } from '../processing/invoice-processor';
 import { TextExtractor } from '../processing/text-extractor';
 import { PrismaService } from '../prisma/prisma.service';
 import { PgmqJobQueue, QUEUE_NAME, DEAD_LETTER_QUEUE_NAME } from '../queue/pgmq-job-queue';
-import { FileStorage } from '../storage/file-storage';
+import { FileNotFoundError, FileStorage } from '../storage/file-storage';
 
 export class MemoryStorage extends FileStorage {
   readonly files = new Map<string, Buffer>();
@@ -17,7 +17,8 @@ export class MemoryStorage extends FileStorage {
   }
   async get(key: string) {
     const f = this.files.get(key);
-    if (!f) throw new Error(`missing ${key}`);
+    // Same signal the real adapters raise, so callers behave the same way under test.
+    if (!f) throw new FileNotFoundError(key);
     return f;
   }
   async delete(key: string) {
@@ -43,7 +44,7 @@ export class CountingLlm extends LlmClient {
 export const sample = (name: string) => readFileSync(join(__dirname, '../../../../samples', name));
 
 /** Real Postgres + pgmq, real queue and services; only storage and the model are faked. */
-export function createHarness() {
+export const createHarness = () => {
   const config = loadConfig({
     ...process.env,
     MAX_PROCESSING_ATTEMPTS: '3',
@@ -85,4 +86,4 @@ export function createHarness() {
       await prisma.$disconnect();
     },
   };
-}
+};

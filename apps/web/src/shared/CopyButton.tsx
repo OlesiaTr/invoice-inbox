@@ -4,7 +4,15 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 /** Small copy-to-clipboard icon; doesn't trigger the click handler of the row it sits in. */
-export function CopyButton({ value, label = 'Copy', className }: { value: string; label?: string; className?: string }) {
+export const CopyButton = ({
+  value,
+  label = 'Copy',
+  className,
+}: {
+  value: string;
+  label?: string;
+  className?: string;
+}) => {
   const [copied, setCopied] = useState(false);
 
   const copy = async (e: MouseEvent) => {
@@ -29,4 +37,4 @@ export function CopyButton({ value, label = 'Copy', className }: { value: string
       {copied ? <Check className="size-3.5 text-success" /> : <Copy className="size-3.5" />}
     </button>
   );
-}
+};

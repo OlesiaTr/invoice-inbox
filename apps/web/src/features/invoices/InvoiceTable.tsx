@@ -5,9 +5,18 @@ import {
   useReactTable,
   type SortingState,
 } from '@tanstack/react-table';
-import { ArrowDown, ArrowUp, ArrowUpDown, FileImage, FileText, MoreVertical, RotateCcw, Trash2, TriangleAlert } from 'lucide-react';
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  FileImage,
+  FileText,
+  MoreVertical,
+  RotateCcw,
+  Trash2,
+  TriangleAlert,
+} from 'lucide-react';
 import { useMemo } from 'react';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -21,7 +30,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import type { InvoiceSortField, SortDirection } from '@/gql/graphql';
 import { CopyButton } from '@/shared/CopyButton';
 import { formatDate, formatMoney, timeAgo } from '@/shared/format';
-import { useDeleteInvoice, useRetryInvoice, type InvoiceRow } from './api';
+import { useNow } from '@/shared/use-media-query';
+import { type InvoiceRow } from './api';
 import { StatusBadge } from './StatusBadge';
 
 const col = createColumnHelper<InvoiceRow>();
@@ -34,12 +44,27 @@ interface Props {
   sort: { by: InvoiceSortField; dir: SortDirection };
   onSortChange: (by: InvoiceSortField, dir: SortDirection) => void;
   onOpen: (id: string) => void;
+  onRetry: (id: string) => void;
+  onRequestDelete: (id: string, name: string) => void;
 }
 
-/** Sorting is server-side (manualSorting): the table only renders and reports intent. */
-export function InvoiceTable({ rows, loading, refreshing, error, sort, onSortChange, onOpen }: Props) {
-  const retry = useRetryInvoice();
-  const remove = useDeleteInvoice();
+/**
+ * Pure presentation: sorting is server-side (manualSorting) and every action is reported
+ * to the parent, which owns the mutations. That also keeps the column memo below stable.
+ */
+export const InvoiceTable = ({
+  rows,
+  loading,
+  refreshing,
+  error,
+  sort,
+  onSortChange,
+  onOpen,
+  onRetry,
+  onRequestDelete,
+}: Props) => {
+  // Re-render on a timer so the "Uploaded" column's relative times don't freeze.
+  useNow();
 
   const columns = useMemo(
     () => [
@@ -73,7 +98,11 @@ export function InvoiceTable({ rows, loading, refreshing, error, sort, onSortCha
             <span className="inline-flex items-center gap-1">
               {n}
               {/* Shown on row hover (always visible on touch screens) */}
-              <CopyButton value={n} label="Copy invoice number" className="opacity-100 sm:opacity-0 sm:group-hover/row:opacity-100 focus-visible:opacity-100" />
+              <CopyButton
+                value={n}
+                label="Copy invoice number"
+                className="opacity-100 sm:opacity-0 sm:group-hover/row:opacity-100 focus-visible:opacity-100"
+              />
             </span>
           );
         },
@@ -124,6 +153,9 @@ export function InvoiceTable({ rows, loading, refreshing, error, sort, onSortCha
         cell: ({ row }) => {
           const r = row.original;
           return (
+            // Not a control: the handler exists only so clicking a button in here doesn't
+            // also open the row. Keyboard users reach the buttons directly.
+            // eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events
             <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
               {r.status === 'failed' && (
                 <Tooltip>
@@ -133,7 +165,7 @@ export function InvoiceTable({ rows, loading, refreshing, error, sort, onSortCha
                       size="icon"
                       className="size-8"
                       aria-label="Retry"
-                      onClick={() => retry.mutate(r.id, { onError: (e) => toast.error(e.message) })}
+                      onClick={() => onRetry(r.id)}
                     >
                       <RotateCcw />
                     </Button>
@@ -149,16 +181,7 @@ export function InvoiceTable({ rows, loading, refreshing, error, sort, onSortCha
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={() => onOpen(r.id)}>Open details</DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="text-error"
-                    onClick={() => {
-                      if (!confirm(`Delete “${r.originalName}”?`)) return;
-                      remove.mutate(r.id, {
-                        onSuccess: () => toast.success('Invoice deleted'),
-                        onError: (e) => toast.error(e.message),
-                      });
-                    }}
-                  >
+                  <DropdownMenuItem className="text-error" onClick={() => onRequestDelete(r.id, r.originalName)}>
                     <Trash2 /> Delete
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -168,7 +191,7 @@ export function InvoiceTable({ rows, loading, refreshing, error, sort, onSortCha
         },
       }),
     ],
-    [retry, remove, onOpen],
+    [onOpen, onRetry, onRequestDelete],
   );
 
   const sorting: SortingState = [{ id: sort.by, desc: sort.dir === 'desc' }];
@@ -249,9 +272,19 @@ export function InvoiceTable({ rows, loading, refreshing, error, sort, onSortCha
             <TableRow
               key={row.id}
               className="group/row cursor-pointer"
+              // A row is interactive, so it has to be reachable and operable by keyboard.
+              role="button"
+              tabIndex={0}
+              aria-label={`Open ${row.original.originalName}`}
               onClick={() => {
                 // Selecting text (e.g. to copy a vendor name) must not open the details.
                 if (window.getSelection()?.toString()) return;
+                onOpen(row.id);
+              }}
+              onKeyDown={(e) => {
+                if (e.target !== e.currentTarget) return;
+                if (e.key !== 'Enter' && e.key !== ' ') return;
+                e.preventDefault();
                 onOpen(row.id);
               }}
             >
@@ -266,4 +299,4 @@ export function InvoiceTable({ rows, loading, refreshing, error, sort, onSortCha
       </Table>
     </div>
   );
-}
+};

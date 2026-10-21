@@ -1,14 +1,8 @@
-import {
-  Inject,
-  Injectable,
-  Logger,
-  OnApplicationShutdown,
-  OnModuleInit,
-} from '@nestjs/common';
+import { Inject, Injectable, Logger, OnApplicationShutdown, OnModuleInit } from '@nestjs/common';
 import { PubSub } from 'graphql-subscriptions';
 import { Client } from 'pg';
 import { APP_CONFIG, type AppConfig } from '../config/config';
-import { InvoiceEvent, InvoiceEventType } from '../invoices/api/invoice.model';
+import { InvoiceEvent, InvoiceEventType } from '../invoices/api/dto/invoice-event.model';
 
 const CHANNEL = 'invoice_events';
 const TRIGGER = 'invoiceEvents';
@@ -82,7 +76,12 @@ export class InvoiceEventsService implements OnModuleInit, OnApplicationShutdown
   private onNotification(payload: string | undefined) {
     if (!payload) return;
     try {
-      const e = JSON.parse(payload) as { type: InvoiceEventType; id: string; status: InvoiceEvent['status']; updatedAt: string };
+      const e = JSON.parse(payload) as {
+        type: InvoiceEventType;
+        id: string;
+        status: InvoiceEvent['status'];
+        updatedAt: string;
+      };
       this.publish({ type: e.type, id: e.id, status: e.status, updatedAt: new Date(e.updatedAt) });
     } catch {
       this.logger.warn(`Ignoring malformed notification: ${payload}`);

@@ -1,0 +1,11 @@
+node_modules
+dist
+pnpm-lock.yaml
+
+# Generated: GraphQL codegen output and the Prisma/Nest schema artefacts.
+apps/web/src/gql
+apps/backend/schema.graphql
+apps/backend/prisma/migrations
+
+# Hand-laid-out prose and tables; formatting these is churn, not consistency.
+*.md

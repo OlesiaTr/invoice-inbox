@@ -1,0 +1,5 @@
+mutation UpdateInvoiceFields($id: ID!, $input: UpdateInvoiceFieldsInput!) {
+  updateInvoiceFields(id: $id, input: $input) {
+    id
+  }
+}

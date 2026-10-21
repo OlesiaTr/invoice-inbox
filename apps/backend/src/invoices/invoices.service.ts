@@ -12,14 +12,9 @@ import { Invoice, InvoiceStatus, Prisma } from '@prisma/client';
 import { APP_CONFIG, type AppConfig } from '../config/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { JobQueue } from '../queue/job-queue';
-import { FileStorage } from '../storage/file-storage';
+import { FileNotFoundError, FileStorage } from '../storage/file-storage';
 import { EXTENSIONS, detectFileType } from './domain/file-type';
-import {
-  InvoiceFieldsPatch,
-  extractedInvoiceSchema,
-  promotedColumns,
-  sanityCheck,
-} from './domain/invoice-data';
+import { InvoiceFieldsPatch, extractedInvoiceSchema, promotedColumns, sanityCheck } from './domain/invoice-data';
 import { assertTransition, InvalidTransitionError } from './domain/invoice-status';
 
 export interface UploadedFile {
@@ -46,6 +41,12 @@ export interface ListInvoicesQuery {
 }
 
 export type StatsGroupBy = 'status' | 'vendor' | 'month';
+
+/** Distinguishes an id from an invoice number or a file name in findByRef. */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export const DEFAULT_PAGE_SIZE = 50;
+export const MAX_PAGE_SIZE = 200;
 
 /** Application service: the one place business rules live. GraphQL, REST, the assistant and MCP all call this. */
 @Injectable()
@@ -127,6 +128,10 @@ export class InvoicesService {
     };
     const sortBy = q.sortBy ?? 'createdAt';
     const sortDir = q.sortDir ?? 'desc';
+    // Clamped here rather than at the API edge: GraphQL `Int` has no bounds, and a
+    // negative skip reaches Prisma as an error rather than an empty page.
+    const take = Math.min(Math.max(q.limit ?? DEFAULT_PAGE_SIZE, 1), MAX_PAGE_SIZE);
+    const skip = Math.max(q.offset ?? 0, 0);
     const [items, total] = await this.prisma.$transaction([
       this.prisma.invoice.findMany({
         where,
@@ -135,8 +140,8 @@ export class InvoicesService {
           sortBy === 'createdAt' ? { createdAt: sortDir } : { [sortBy]: { sort: sortDir, nulls: 'last' } },
           { createdAt: 'desc' },
         ],
-        take: Math.min(q.limit ?? 50, 200),
-        skip: q.offset ?? 0,
+        take,
+        skip,
       }),
       this.prisma.invoice.count({ where }),
     ]);
@@ -158,11 +163,16 @@ export class InvoicesService {
 
   /** Finds by UUID or by (extracted) invoice number — the assistant gets either from users. */
   async findByRef(ref: string): Promise<Invoice> {
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(ref);
+    const isUuid = UUID.test(ref);
     const matches = await this.prisma.invoice.findMany({
       where: isUuid
         ? { id: ref }
-        : { OR: [{ invoiceNumber: { equals: ref, mode: 'insensitive' } }, { originalName: { equals: ref, mode: 'insensitive' } }] },
+        : {
+            OR: [
+              { invoiceNumber: { equals: ref, mode: 'insensitive' } },
+              { originalName: { equals: ref, mode: 'insensitive' } },
+            ],
+          },
       take: 2,
     });
     if (matches.length === 0) throw new NotFoundException(`No invoice matches "${ref}"`);
@@ -172,7 +182,17 @@ export class InvoicesService {
 
   async getFile(id: string): Promise<{ invoice: Invoice; body: Buffer }> {
     const invoice = await this.get(id);
-    return { invoice, body: await this.storage.get(invoice.storageKey) };
+    try {
+      return { invoice, body: await this.storage.get(invoice.storageKey) };
+    } catch (err) {
+      // The row outlived its file (a half-finished delete, or storage restored separately).
+      // Say so, rather than letting it surface as an unhandled 500.
+      if (err instanceof FileNotFoundError) {
+        this.logger.warn(`Invoice ${id} has no stored file at ${invoice.storageKey}`);
+        throw new NotFoundException(`The uploaded file for invoice ${id} is no longer available`);
+      }
+      throw err;
+    }
   }
 
   /** Manual retry: only from `failed`. Status reset and new job commit together. */
@@ -231,7 +251,7 @@ export class InvoicesService {
     return this.prisma.invoice.update({
       where: { id },
       data: {
-        extractedData: merged as Prisma.InputJsonValue,
+        extractedData: merged,
         warnings: sanityCheck(merged),
         ...promotedColumns(merged),
       },
@@ -242,7 +262,9 @@ export class InvoicesService {
     if (groupBy === 'status') return { byStatus: await this.statusCounts() };
 
     const key = groupBy === 'vendor' ? Prisma.sql`vendor_name` : Prisma.sql`to_char(issue_date, 'YYYY-MM')`;
-    const rows = await this.prisma.$queryRaw<{ key: string | null; currency: string | null; count: bigint; total: Prisma.Decimal | null }[]>`
+    const rows = await this.prisma.$queryRaw<
+      { key: string | null; currency: string | null; count: bigint; total: Prisma.Decimal | null }[]
+    >`
       SELECT ${key} AS key, currency, count(*) AS count, sum(total) AS total
       FROM invoices
       WHERE status = 'completed' ${currency ? Prisma.sql`AND currency = ${currency.toUpperCase()}` : Prisma.empty}

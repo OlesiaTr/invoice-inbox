@@ -12,8 +12,12 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { Throttle } from '@nestjs/throttler';
 import { InvoicesService } from '../invoices.service';
-import { toInvoiceModel } from './invoice.model';
+import { toInvoiceModel } from './dto/invoice.model';
+
+/** Client-chosen, so it is constrained: letters, digits, "-" and "_", 8–100 characters. */
+const IDEMPOTENCY_KEY = /^[\w-]{8,100}$/;
 
 /**
  * File transfer only. GraphQL has no file type in the spec and Apollo advises against the
@@ -24,14 +28,14 @@ export class InvoicesController {
   constructor(private readonly invoices: InvoicesService) {}
 
   @Post()
+  // Uploads buffer in memory and start an OCR + model job, so they get a far tighter
+  // budget than the read endpoints.
+  @Throttle({ default: { ttl: 60_000, limit: 30 } })
   // Hard memory cap while buffering; the configurable business limit is checked in the service.
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 25 * 1024 * 1024, files: 1 } }))
-  async upload(
-    @UploadedFile() file?: Express.Multer.File,
-    @Headers('idempotency-key') idempotencyKey?: string,
-  ) {
+  async upload(@UploadedFile() file?: Express.Multer.File, @Headers('idempotency-key') idempotencyKey?: string) {
     if (!file) throw new BadRequestException('Send the invoice as multipart field "file"');
-    if (idempotencyKey !== undefined && !/^[\w-]{8,100}$/.test(idempotencyKey)) {
+    if (idempotencyKey !== undefined && !IDEMPOTENCY_KEY.test(idempotencyKey)) {
       throw new BadRequestException('Idempotency-Key must be 8–100 letters, digits, "-" or "_"');
     }
     // Multer decodes the multipart filename as latin1; browsers send UTF-8.

@@ -18,9 +18,9 @@ const TRANSITIONS: Record<InvoiceStatus, readonly InvoiceStatus[]> = {
   failed: ['uploaded'],
 };
 
-export function canTransition(from: InvoiceStatus, to: InvoiceStatus): boolean {
+export const canTransition = (from: InvoiceStatus, to: InvoiceStatus): boolean => {
   return TRANSITIONS[from].includes(to);
-}
+};
 
 export class InvalidTransitionError extends Error {
   constructor(
@@ -31,6 +31,6 @@ export class InvalidTransitionError extends Error {
   }
 }
 
-export function assertTransition(from: InvoiceStatus, to: InvoiceStatus): void {
+export const assertTransition = (from: InvoiceStatus, to: InvoiceStatus): void => {
   if (!canTransition(from, to)) throw new InvalidTransitionError(from, to);
-}
+};

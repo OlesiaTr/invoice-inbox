@@ -19,11 +19,7 @@ export abstract class JobQueue {
   abstract enqueue(tx: Tx, job: InvoiceJob, delaySeconds?: number): Promise<void>;
 
   /** Long-polls for up to `waitSeconds`; returned messages stay hidden for `visibilitySeconds`. */
-  abstract read(
-    visibilitySeconds: number,
-    max: number,
-    waitSeconds: number,
-  ): Promise<QueueMessage<InvoiceJob>[]>;
+  abstract read(visibilitySeconds: number, max: number, waitSeconds: number): Promise<QueueMessage<InvoiceJob>[]>;
 
   /** Acknowledge: the message is done and must not be delivered again. */
   abstract delete(tx: Tx, messageId: bigint): Promise<void>;

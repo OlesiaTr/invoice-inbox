@@ -1,16 +1,11 @@
 import { Args, ID, Mutation, Query, Resolver, Subscription } from '@nestjs/graphql';
 import { InvoiceEventsService } from '../../realtime/invoice-events.service';
 import { InvoicesService } from '../invoices.service';
-import {
-  InvoiceEvent,
-  InvoiceModel,
-  InvoicePage,
-  InvoicesFilter,
-  RetryAllResult,
-  StatusCounts,
-  UpdateInvoiceFieldsInput,
-  toInvoiceModel,
-} from './invoice.model';
+import { InvoiceEvent } from './dto/invoice-event.model';
+import { InvoicePage, RetryAllResult, StatusCounts } from './dto/invoice-page.model';
+import { InvoiceModel, toInvoiceModel } from './dto/invoice.model';
+import { InvoicesFilter } from './dto/invoices-filter.input';
+import { UpdateInvoiceFieldsInput } from './dto/update-invoice-fields.input';
 
 @Resolver(() => InvoiceModel)
 export class InvoicesResolver {

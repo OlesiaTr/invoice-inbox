@@ -1,0 +1,18 @@
+mutation AssistantChat($messages: [ChatMessageInput!]!) {
+  assistantChat(messages: $messages) {
+    reply
+    actions {
+      tool
+      ok
+      summary
+    }
+    pendingActions {
+      id
+      kind
+      invoiceId
+      summary
+      field
+      valueJson
+    }
+  }
+}

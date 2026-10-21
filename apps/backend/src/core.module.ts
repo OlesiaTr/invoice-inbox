@@ -11,10 +11,10 @@ import { FileStorage } from './storage/file-storage';
 import { LocalDiskStorage } from './storage/local-disk-storage';
 import { S3Storage } from './storage/s3-storage';
 
-function required(value: string | undefined, name: string): string {
+const required = (value: string | undefined, name: string): string => {
   if (!value) throw new Error(`${name} must be set for the selected driver`);
   return value;
-}
+};
 
 /**
  * Infrastructure shared by the API and the worker. Each port (abstract class) is bound to
@@ -55,9 +55,14 @@ function required(value: string | undefined, name: string): string {
           case 'mock':
             return new MockLlmClient();
           case 'gemini':
-            return new GeminiLlmClient(required(config.GEMINI_API_KEY, 'GEMINI_API_KEY'), config.GEMINI_MODEL, timeoutMs, {
-              fallbackModels: config.GEMINI_FALLBACK_MODELS.split(',').map((m) => m.trim()),
-            });
+            return new GeminiLlmClient(
+              required(config.GEMINI_API_KEY, 'GEMINI_API_KEY'),
+              config.GEMINI_MODEL,
+              timeoutMs,
+              {
+                fallbackModels: config.GEMINI_FALLBACK_MODELS.split(',').map((m) => m.trim()),
+              },
+            );
         }
       },
     },

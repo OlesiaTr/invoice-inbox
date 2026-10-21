@@ -8,7 +8,7 @@ const ThemeContext = createContext<{ theme: Theme; toggle: () => void }>({
   toggle: () => {},
 });
 
-function initialTheme(): Theme {
+const initialTheme = (): Theme => {
   try {
     const saved = localStorage.getItem(KEY);
     if (saved === 'light' || saved === 'dark') return saved;
@@ -16,9 +16,9 @@ function initialTheme(): Theme {
     // storage unavailable
   }
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-}
+};
 
-export function ThemeProvider({ children }: { children: ReactNode }) {
+export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [theme, setTheme] = useState<Theme>(initialTheme);
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
@@ -33,6 +33,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       {children}
     </ThemeContext.Provider>
   );
-}
+};
 
 export const useTheme = () => useContext(ThemeContext);

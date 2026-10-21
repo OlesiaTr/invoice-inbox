@@ -2,6 +2,7 @@ import { useDropzone } from 'react-dropzone';
 import { CloudUpload } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { MAX_UPLOAD_BYTES, MAX_UPLOAD_LABEL } from '@/shared/config';
 import { useUploadInvoice } from './api';
 
 const ACCEPT = {
@@ -12,7 +13,7 @@ const ACCEPT = {
 };
 
 /** Each file is its own request: one bad file doesn't fail the batch, and each gets its own feedback. */
-export function UploadDropzone() {
+export const UploadDropzone = () => {
   const upload = useUploadInvoice();
 
   const onDrop = (files: File[]) => {
@@ -35,7 +36,7 @@ export function UploadDropzone() {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: ACCEPT,
-    maxSize: 10 * 1024 * 1024,
+    maxSize: MAX_UPLOAD_BYTES,
     onDropRejected: (rejections) =>
       rejections.forEach((r) => toast.error(`${r.file.name}: ${r.errors[0]?.message ?? 'rejected'}`)),
   });
@@ -55,7 +56,7 @@ export function UploadDropzone() {
       <p className="font-medium text-dark dark:text-white">
         {isDragActive ? 'Drop to upload' : 'Drop invoices here or click to browse'}
       </p>
-      <p className="text-sm text-muted-foreground">PDF, PNG, JPEG or WEBP · up to 10 MB each</p>
+      <p className="text-sm text-muted-foreground">PDF, PNG, JPEG or WEBP · up to {MAX_UPLOAD_LABEL} each</p>
     </div>
   );
-}
+};

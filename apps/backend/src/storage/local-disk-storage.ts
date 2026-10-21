@@ -1,6 +1,6 @@
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, resolve, sep } from 'node:path';
-import { FileStorage } from './file-storage';
+import { FileNotFoundError, FileStorage } from './file-storage';
 
 /** Files on a local directory — in Docker, a volume shared by the API and the worker. */
 export class LocalDiskStorage extends FileStorage {
@@ -17,8 +17,13 @@ export class LocalDiskStorage extends FileStorage {
     await writeFile(path, body);
   }
 
-  get(key: string): Promise<Buffer> {
-    return readFile(this.pathFor(key));
+  async get(key: string): Promise<Buffer> {
+    try {
+      return await readFile(this.pathFor(key));
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === 'ENOENT') throw new FileNotFoundError(key);
+      throw err;
+    }
   }
 
   async delete(key: string): Promise<void> {

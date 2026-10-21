@@ -1,5 +1,5 @@
 import { TransientProcessingError } from '../invoices/domain/processing-errors';
-import { ChatMessage, ChatResult, LlmClient, ToolCall } from './llm-client';
+import { type ChatMessage, type ChatResult, LlmClient, type ToolCall } from './llm-client';
 import { TOOL_CHECK_PROMPT } from './prompts';
 
 /**
@@ -12,7 +12,10 @@ export class MockLlmClient extends LlmClient {
     if (text.includes('SIMULATE_TRANSIENT_FAILURE')) {
       throw new TransientProcessingError('Simulated model timeout');
     }
-    const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    const lines = text
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter(Boolean);
     const amountOn = (re: RegExp) => {
       const line = [...lines].reverse().find((l) => re.test(l));
       return line ? parseAmount(line.replace(re, '')) : null;
@@ -61,7 +64,7 @@ export class MockLlmClient extends LlmClient {
   }
 }
 
-function routeIntent(text: string): ToolCall | null {
+const routeIntent = (text: string): ToolCall | null => {
   const t = text.toLowerCase();
   const ref =
     text.match(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/i)?.[0] ??
@@ -80,9 +83,9 @@ function routeIntent(text: string): ToolCall | null {
   if (ref) return { name: 'get_invoice', arguments: { ref } };
   if (/\b(list|show|all)\b.*invoices?/.test(t)) return { name: 'list_invoices', arguments: {} };
   return null;
-}
+};
 
-function summarize(content: string): string {
+const summarize = (content: string): string => {
   if (content.startsWith('NOT EXECUTED')) return 'I prepared that action — please review and confirm it below.';
   if (content.startsWith('Error:')) return content.replace(/^Error:\s*/, 'Sorry, that failed: ');
   try {
@@ -90,8 +93,9 @@ function summarize(content: string): string {
     if (data && typeof data === 'object' && 'items' in data && Array.isArray(data.items)) {
       if (data.items.length === 0) return 'No invoices match.';
       return data.items
-        .map((i: Record<string, unknown>) =>
-          `- ${i.invoiceNumber ?? i.file} · ${i.status}${i.vendor ? ` · ${i.vendor}` : ''}${i.total != null ? ` · ${i.total} ${i.currency ?? ''}` : ''}`,
+        .map(
+          (i: Record<string, string | number | null | undefined>) =>
+            `- ${i.invoiceNumber ?? i.file} · ${i.status}${i.vendor ? ` · ${i.vendor}` : ''}${i.total != null ? ` · ${i.total} ${i.currency ?? ''}` : ''}`,
         )
         .join('\n');
     }
@@ -104,9 +108,9 @@ function summarize(content: string): string {
   } catch {
     return content;
   }
-}
+};
 
-function parseAmount(s: string): number | null {
+const parseAmount = (s: string): number | null => {
   // The amount is the last number on the line ("VAT 20%: 16.86 EUR" → 16.86).
   const all = s.match(/-?\d[\d.,]*/g);
   if (!all) return null;
@@ -121,9 +125,9 @@ function parseAmount(s: string): number | null {
   }
   const n = Number(num);
   return Number.isFinite(n) ? n : null;
-}
+};
 
-function findDate(text: string, label: RegExp): string | null {
+const findDate = (text: string, label: RegExp): string | null => {
   const m = text.match(
     new RegExp(
       label.source +
@@ -136,9 +140,9 @@ function findDate(text: string, label: RegExp): string | null {
   const dmy = raw.match(/^(\d{1,2})[/.](\d{1,2})[/.](\d{4})$/);
   if (dmy) return `${dmy[3]}-${dmy[2].padStart(2, '0')}-${dmy[1].padStart(2, '0')}`;
   return raw;
-}
+};
 
-function detectCurrency(text: string): string | null {
+const detectCurrency = (text: string): string | null => {
   const code = text.match(/\b(EUR|USD|GBP|UAH|PLN|CHF)\b/)?.[1];
   if (code) return code;
   if (/грн|₴/.test(text)) return 'UAH';
@@ -146,4 +150,4 @@ function detectCurrency(text: string): string | null {
   if (text.includes('£')) return 'GBP';
   if (text.includes('$')) return 'USD';
   return null;
-}
+};

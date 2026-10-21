@@ -2,7 +2,10 @@ import { CheckCircle2, CircleAlert, Clock, Loader2 } from 'lucide-react';
 import type { InvoiceStatus } from '@/gql/graphql';
 import { Badge } from '@/components/ui/badge';
 
-const STYLES: Record<InvoiceStatus, { label: string; variant: 'lightInfo' | 'lightWarning' | 'lightSuccess' | 'lightError'; icon: typeof Clock }> = {
+const STYLES: Record<
+  InvoiceStatus,
+  { label: string; variant: 'lightInfo' | 'lightWarning' | 'lightSuccess' | 'lightError'; icon: typeof Clock }
+> = {
   uploaded: { label: 'Queued', variant: 'lightInfo', icon: Clock },
   processing: { label: 'Processing', variant: 'lightWarning', icon: Loader2 },
   completed: { label: 'Completed', variant: 'lightSuccess', icon: CheckCircle2 },
@@ -16,7 +19,7 @@ export const STATUS_LABELS: Record<InvoiceStatus, string> = {
   failed: 'Failed',
 };
 
-export function StatusBadge({ status }: { status: InvoiceStatus }) {
+export const StatusBadge = ({ status }: { status: InvoiceStatus }) => {
   const { label, variant, icon: Icon } = STYLES[status];
   return (
     <Badge variant={variant} className="gap-1 whitespace-nowrap">
@@ -24,4 +27,4 @@ export function StatusBadge({ status }: { status: InvoiceStatus }) {
       {label}
     </Badge>
   );
-}
+};
