@@ -5,7 +5,8 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
 import type { Request, Response } from 'express';
 import { errorMessage } from '../invoices/domain/processing-errors';
 import { InvoicesService } from '../invoices/invoices.service';
-import { ASSISTANT_TOOLS, toolJsonSchema } from './tools';
+import { toolJsonSchema } from './tool-types';
+import { ASSISTANT_TOOLS } from './tools';
 
 /**
  * The same tools as the in-app assistant, exposed over MCP (Streamable HTTP, stateless) so
