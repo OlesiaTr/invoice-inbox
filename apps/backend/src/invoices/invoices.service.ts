@@ -42,6 +42,9 @@ export interface ListInvoicesQuery {
 
 export type StatsGroupBy = 'status' | 'vendor' | 'month';
 
+/** Distinguishes an id from an invoice number or a file name in findByRef. */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export const DEFAULT_PAGE_SIZE = 50;
 export const MAX_PAGE_SIZE = 200;
 
@@ -160,7 +163,7 @@ export class InvoicesService {
 
   /** Finds by UUID or by (extracted) invoice number — the assistant gets either from users. */
   async findByRef(ref: string): Promise<Invoice> {
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(ref);
+    const isUuid = UUID.test(ref);
     const matches = await this.prisma.invoice.findMany({
       where: isUuid
         ? { id: ref }

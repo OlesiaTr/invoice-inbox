@@ -2,7 +2,7 @@ import { Inject, Injectable, Logger, OnApplicationShutdown, OnModuleInit } from 
 import { PubSub } from 'graphql-subscriptions';
 import { Client } from 'pg';
 import { APP_CONFIG, type AppConfig } from '../config/config';
-import { InvoiceEvent, InvoiceEventType } from '../invoices/api/invoice.model';
+import { InvoiceEvent, InvoiceEventType } from '../invoices/api/dto/invoice-event.model';
 
 const CHANNEL = 'invoice_events';
 const TRIGGER = 'invoiceEvents';

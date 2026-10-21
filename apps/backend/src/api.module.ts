@@ -5,24 +5,26 @@ import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ThrottlerModule } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
-import { AssistantResolver } from './assistant/assistant.resolver';
-import { AssistantService } from './assistant/assistant.service';
-import { McpController } from './assistant/mcp.controller';
+import { AssistantModule } from './assistant/assistant.module';
 import { AccessCodeGuard, accessCodeMatches } from './common/access-code.guard';
 import { CorrelationMiddleware } from './common/correlation.middleware';
 import { GqlThrottlerGuard } from './common/gql-throttler.guard';
-import { HealthController } from './common/health.controller';
+import { HealthModule } from './common/health.module';
 import { HttpExceptionFilter } from './common/http-exception.filter';
 import { APP_CONFIG, type AppConfig } from './config/config';
 import { CoreModule } from './core.module';
-import { InvoicesController } from './invoices/api/invoices.controller';
-import { InvoicesResolver } from './invoices/api/invoices.resolver';
-import { InvoicesService } from './invoices/invoices.service';
-import { InvoiceEventsService } from './realtime/invoice-events.service';
+import { InvoicesModule } from './invoices/invoices.module';
 
+/**
+ * Composition root for the HTTP/GraphQL app: the transport and the cross-cutting
+ * concerns. The features themselves live in their own modules.
+ */
 @Module({
   imports: [
     CoreModule,
+    InvoicesModule,
+    AssistantModule,
+    HealthModule,
     // Generous by default — the UI is chatty on purpose (live updates, counts). The
     // expensive entry points carry their own tighter @Throttle.
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 300 }]),
@@ -59,18 +61,11 @@ import { InvoiceEventsService } from './realtime/invoice-events.service';
       },
     }),
   ],
-  controllers: [InvoicesController, HealthController, McpController],
   providers: [
     { provide: APP_GUARD, useClass: AccessCodeGuard },
     { provide: APP_GUARD, useClass: GqlThrottlerGuard },
     { provide: APP_FILTER, useClass: HttpExceptionFilter },
-    InvoicesService,
-    InvoicesResolver,
-    InvoiceEventsService,
-    AssistantService,
-    AssistantResolver,
   ],
-  exports: [InvoicesService],
 })
 export class ApiModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
