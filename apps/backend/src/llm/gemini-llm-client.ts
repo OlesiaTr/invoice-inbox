@@ -115,13 +115,13 @@ export class GeminiLlmClient extends LlmClient {
   }
 }
 
-function isOverloaded(err: unknown): boolean {
+const isOverloaded = (err: unknown): boolean => {
   const status = (err as { status?: number })?.status;
   return status === 503 || status === 429 || /UNAVAILABLE|RESOURCE_EXHAUSTED|high demand/i.test(errorMessage(err));
-}
+};
 
 /** Gemini roles are user/model; tool calls and results are message parts. */
-function toGeminiContents(messages: ChatMessage[]): Content[] {
+const toGeminiContents = (messages: ChatMessage[]): Content[] => {
   const contents: Content[] = [];
   for (const m of messages) {
     switch (m.role) {
@@ -150,4 +150,4 @@ function toGeminiContents(messages: ChatMessage[]): Content[] {
     }
   }
   return contents;
-}
+};

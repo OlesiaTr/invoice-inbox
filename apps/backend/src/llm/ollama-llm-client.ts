@@ -69,7 +69,7 @@ export class OllamaLlmClient extends LlmClient {
   }
 }
 
-function toOllamaMessage(m: ChatMessage): Message {
+const toOllamaMessage = (m: ChatMessage): Message => {
   switch (m.role) {
     case 'assistant':
       return {
@@ -82,4 +82,4 @@ function toOllamaMessage(m: ChatMessage): Message {
     default:
       return { role: m.role, content: m.content };
   }
-}
+};

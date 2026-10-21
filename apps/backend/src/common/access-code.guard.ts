@@ -9,13 +9,13 @@ export const ACCESS_CODE_HEADER = 'x-access-code';
 const PUBLIC = 'isPublic';
 export const Public = () => SetMetadata(PUBLIC, true);
 
-export function accessCodeMatches(expected: string | undefined, given: unknown): boolean {
+export const accessCodeMatches = (expected: string | undefined, given: unknown): boolean => {
   if (!expected) return true;
   if (typeof given !== 'string') return false;
   const a = Buffer.from(given);
   const b = Buffer.from(expected);
   return a.length === b.length && timingSafeEqual(a, b);
-}
+};
 
 /**
  * Not user authentication — just keeps random visitors out of the public demo.

@@ -4,7 +4,7 @@ import helmet from 'helmet';
 import { createLogger } from './common/json-logger';
 import { APP_CONFIG, type AppConfig, loadConfig, loadDotEnv } from './config/config';
 
-export async function startHttpApp(module: Type<unknown>, name: string): Promise<INestApplication> {
+export const startHttpApp = async (module: Type<unknown>, name: string): Promise<INestApplication> => {
   loadDotEnv();
   // The config is parsed before Nest starts so an invalid environment fails immediately,
   // and so the logger knows which format to use for the very first line.
@@ -32,13 +32,13 @@ export async function startHttpApp(module: Type<unknown>, name: string): Promise
   await app.listen(config.PORT);
   new Logger(name).log(`Listening on http://localhost:${config.PORT} (GraphQL at /graphql)`);
   return app;
-}
+};
 
 /** Worker: no HTTP server, just the Nest DI container running the queue consumer. */
-export async function startWorker(module: Type<unknown>): Promise<void> {
+export const startWorker = async (module: Type<unknown>): Promise<void> => {
   loadDotEnv();
   const booted = loadConfig();
   const app = await NestFactory.createApplicationContext(module, { logger: createLogger(booted.NODE_ENV) });
   app.enableShutdownHooks();
   new Logger('Worker').log('Worker started');
-}
+};

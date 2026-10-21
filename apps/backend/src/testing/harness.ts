@@ -44,7 +44,7 @@ export class CountingLlm extends LlmClient {
 export const sample = (name: string) => readFileSync(join(__dirname, '../../../../samples', name));
 
 /** Real Postgres + pgmq, real queue and services; only storage and the model are faked. */
-export function createHarness() {
+export const createHarness = () => {
   const config = loadConfig({
     ...process.env,
     MAX_PROCESSING_ATTEMPTS: '3',
@@ -86,4 +86,4 @@ export function createHarness() {
       await prisma.$disconnect();
     },
   };
-}
+};
