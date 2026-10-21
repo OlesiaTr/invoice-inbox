@@ -1,69 +1,13 @@
 import { ConflictException } from '@nestjs/common';
-import { type Invoice } from '@prisma/client';
 import { z } from 'zod';
 import { EDITABLE_FIELDS, extractedInvoiceSchema } from '../invoices/domain/invoice-data';
-import { type InvoicesService } from '../invoices/invoices.service';
+import { compactInvoice, label, ref } from './tool-helpers';
+import { type AssistantTool, tool } from './tool-types';
 
 /**
- * One tool registry, two "doors": the in-app assistant (LLM tool calling) and the MCP
- * server. Tools call the same application service as the UI, so business rules — like
- * "only failed invoices can be retried" — apply to the AI too. No raw SQL access.
+ * The tool registry: one list, two "doors" — the in-app assistant (LLM tool calling) and
+ * the MCP server. Each entry keeps its name, description, schema and behaviour together.
  */
-export interface AssistantTool<A = Record<string, unknown>> {
-  name: string;
-  description: string;
-  schema: z.ZodType<A>;
-  /**
-   * Destructive tools are never executed by the in-app assistant: they become a pending
-   * action the user confirms with a click (enforced here in code, not by the prompt).
-   */
-  destructive: boolean;
-  /**
-   * Arguments that, when present, must come from the user's message — never chosen by the
-   * model (an edit value, or a filter like a currency the user didn't ask for).
-   */
-  userStatedArgs?: string[];
-  run(args: A, invoices: InvoicesService): Promise<unknown>;
-  /** For destructive tools: what exactly will happen, resolved to a concrete invoice. */
-  preview?(args: A, invoices: InvoicesService): Promise<PendingActionPreview>;
-}
-
-export interface PendingActionPreview {
-  kind: 'delete_invoice' | 'update_invoice_field';
-  invoiceId: string;
-  summary: string;
-  field?: string;
-  value?: string | number | null;
-}
-
-const ref = z.string().min(1).describe('Invoice id (UUID), invoice number (e.g. INV-2026-0042) or original file name');
-
-/**
- * What the model sees about an invoice. Raw OCR text is deliberately left out: it is the
- * most likely carrier of prompt-injection text and the extracted fields are enough.
- */
-export function compactInvoice(i: Invoice) {
-  return {
-    id: i.id,
-    file: i.originalName,
-    status: i.status,
-    invoiceNumber: i.invoiceNumber,
-    vendor: i.vendorName,
-    issueDate: i.issueDate?.toISOString().slice(0, 10) ?? null,
-    total: i.total == null ? null : Number(i.total),
-    currency: i.currency,
-    warnings: i.warnings,
-    error: i.errorReason,
-    uploadedAt: i.createdAt.toISOString(),
-  };
-}
-
-const label = (i: Invoice) => `${i.invoiceNumber ?? i.originalName}${i.vendorName ? ` (${i.vendorName})` : ''}`;
-
-function tool<A>(t: AssistantTool<A>): AssistantTool<A> {
-  return t;
-}
-
 export const ASSISTANT_TOOLS = [
   tool({
     name: 'list_invoices',
@@ -182,8 +126,3 @@ export const ASSISTANT_TOOLS = [
     },
   }),
 ] as AssistantTool[];
-
-export function toolJsonSchema(t: AssistantTool): Record<string, unknown> {
-  const { $schema: _ignored, ...schema } = z.toJSONSchema(t.schema) as Record<string, unknown>;
-  return schema;
-}

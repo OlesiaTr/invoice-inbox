@@ -3,7 +3,7 @@ import { type Invoice } from '@prisma/client';
 import { TransientProcessingError } from '../invoices/domain/processing-errors';
 import { type InvoicesService } from '../invoices/invoices.service';
 import { type ChatMessage, type ChatResult, LlmClient } from '../llm/llm-client';
-import { AssistantService, userStatedValue } from './assistant.service';
+import { AssistantService } from './assistant.service';
 
 /** LLM double that replays a script of responses and records what it was sent. */
 class ScriptedLlm extends LlmClient {
@@ -36,7 +36,7 @@ const invoice = {
   createdAt: new Date('2026-10-01T00:00:00Z'),
 } as unknown as Invoice;
 
-function setup(script: ChatResult[]) {
+const setup = (script: ChatResult[]) => {
   const invoices = {
     findByRef: jest.fn().mockResolvedValue(invoice),
     delete: jest.fn().mockResolvedValue(invoice),
@@ -47,7 +47,7 @@ function setup(script: ChatResult[]) {
   const llm = new ScriptedLlm(script);
   const service = new AssistantService(llm, invoices as unknown as InvoicesService);
   return { service, invoices, llm };
-}
+};
 
 const user = (content: string) => [{ role: 'user' as const, content }];
 
@@ -209,27 +209,5 @@ describe('AssistantService', () => {
     const { service, llm } = setup([{ content: '', toolCalls: [{ name: 'drop_database', arguments: {} }] }]);
     await service.chat(user('hack'));
     expect(llm.calls[1].at(-1)!.content).toBe('Error: unknown tool "drop_database"');
-  });
-});
-
-describe('userStatedValue', () => {
-  it.each([
-    ['set the total to 1200', 1200],
-    ['total should be €1,200.00', 1200],
-    ['tax is 19,50', 19.5],
-    ['vendor is Acme GmbH', 'acme gmbh'],
-    ['due date 01.10.2026', '2026-10-01'],
-    ['issued Sep 3, 2026', '2026-09-03'],
-  ] as const)('accepts "%s" for %s', (text, value) => {
-    expect(userStatedValue(text, value)).toBe(true);
-  });
-
-  it.each([
-    ["let's correct the sum of FL-1", 150.5],
-    ['FL-1 total is wrong', 1],
-    ['change the vendor', 'Acme'],
-    ['set the total to 12', 120],
-  ] as const)('rejects "%s" for %s', (text, value) => {
-    expect(userStatedValue(text, value)).toBe(false);
   });
 });
