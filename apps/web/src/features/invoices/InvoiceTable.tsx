@@ -195,6 +195,9 @@ export const InvoiceTable = ({
   );
 
   const sorting: SortingState = [{ id: sort.by, desc: sort.dir === 'desc' }];
+  // Known and harmless: TanStack Table returns fresh functions each render, so the React
+  // Compiler won't memoize this component. We don't use the compiler.
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: rows,
     columns,

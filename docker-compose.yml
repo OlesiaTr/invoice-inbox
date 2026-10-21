@@ -48,7 +48,7 @@ services:
   migrate:
     <<: *backend
     restart: 'no'
-    command: ['pnpm', 'exec', 'prisma', 'migrate', 'deploy']
+    command: ['./node_modules/.bin/prisma', 'migrate', 'deploy']
     depends_on:
       db:
         condition: service_healthy
