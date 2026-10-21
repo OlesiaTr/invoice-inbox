@@ -16,13 +16,19 @@ const amount = z.preprocess((v) => {
   return null;
 }, z.number().nullable());
 
+/** An already-normalised date, which needs no reparsing. */
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** An ISO 4217 code is exactly three letters; anything else is not a currency. */
+const CURRENCY_CODE = /^[a-z]{3}$/i;
+
 const pad2 = (n: number) => String(n).padStart(2, '0');
 
 /** Lenient date: normalised to YYYY-MM-DD, unparseable → null. */
 const isoDate = z.preprocess((v) => {
   if (typeof v !== 'string' || !v.trim()) return null;
   const s = v.trim();
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  if (ISO_DATE.test(s)) return s;
   const t = Date.parse(s);
   if (Number.isNaN(t)) return null;
   // A date with no time parses as *local* midnight, so reading it back with toISOString()
@@ -49,7 +55,7 @@ export const extractedInvoiceSchema = z.object({
   issueDate: isoDate,
   dueDate: isoDate,
   currency: z.preprocess(
-    (v) => (typeof v === 'string' && /^[a-z]{3}$/i.test(v.trim()) ? v.trim().toUpperCase() : null),
+    (v) => (typeof v === 'string' && CURRENCY_CODE.test(v.trim()) ? v.trim().toUpperCase() : null),
     z.string().nullable(),
   ),
   subtotal: amount,
@@ -132,7 +138,7 @@ const money = (n: number) => n.toFixed(2);
  * Arithmetic and plausibility checks. They never fail processing — the data is still
  * useful — but are shown to the user so a human can double-check the AI's work.
  */
-export function sanityCheck(d: ExtractedInvoice): string[] {
+export const sanityCheck = (d: ExtractedInvoice): string[] => {
   const warnings: string[] = [];
   if (d.total == null) warnings.push('Total amount not found');
   if (!d.invoiceNumber) warnings.push('Invoice number not found');
@@ -163,10 +169,10 @@ export function sanityCheck(d: ExtractedInvoice): string[] {
     warnings.push('Due date is before the issue date');
   }
   return warnings;
-}
+};
 
 /** Columns copied out of the JSON for sorting, filtering and aggregation. */
-export function promotedColumns(d: ExtractedInvoice) {
+export const promotedColumns = (d: ExtractedInvoice) => {
   return {
     vendorName: d.vendorName,
     invoiceNumber: d.invoiceNumber,
@@ -174,4 +180,4 @@ export function promotedColumns(d: ExtractedInvoice) {
     total: d.total,
     currency: d.currency,
   };
-}
+};

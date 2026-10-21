@@ -8,7 +8,7 @@ import { DEFAULT_PAGE_SIZE, InvoicesService, MAX_PAGE_SIZE } from './invoices.se
  * Pagination bounds only — everything that needs a real database lives in
  * processing.int-spec.ts. Captures the arguments the service hands to Prisma.
  */
-function serviceWithSpy() {
+const serviceWithSpy = () => {
   const findMany = jest.fn().mockResolvedValue([]);
   const prisma = {
     // `list` runs both reads in one transaction; resolve the array of promises it passes in.
@@ -18,7 +18,7 @@ function serviceWithSpy() {
 
   const service = new InvoicesService(prisma, {} as JobQueue, {} as FileStorage, {} as AppConfig);
   return { service, findMany };
-}
+};
 
 describe('InvoicesService.list pagination', () => {
   it('defaults to the standard page size starting at the first row', async () => {

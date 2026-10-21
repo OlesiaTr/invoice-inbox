@@ -55,7 +55,7 @@ export class JsonLogger implements LoggerService {
   }
 }
 
-function safeString(value: unknown): string {
+const safeString = (value: unknown): string => {
   if (typeof value === 'string') return value;
   if (value instanceof Error) return value.stack ?? value.message;
   try {
@@ -63,9 +63,9 @@ function safeString(value: unknown): string {
   } catch {
     return String(value);
   }
-}
+};
 
 /** Human-readable in development, machine-readable in production. */
-export function createLogger(nodeEnv: string): LoggerService {
+export const createLogger = (nodeEnv: string): LoggerService => {
   return nodeEnv === 'production' ? new JsonLogger() : new ConsoleLogger();
-}
+};

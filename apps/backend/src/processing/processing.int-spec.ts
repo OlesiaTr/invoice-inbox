@@ -8,12 +8,12 @@ const h = createHarness();
 beforeEach(() => h.reset());
 afterAll(() => h.close());
 
-async function uploadAndRead(file = 'acme-cloud-INV-2026-0042.pdf') {
+const uploadAndRead = async (file = 'acme-cloud-INV-2026-0042.pdf') => {
   const { invoice } = await h.invoices.upload({ buffer: sample(file), originalName: file });
   const [message] = await h.queue.read(30, 1, 1);
   expect(message.payload.invoiceId).toBe(invoice.id);
   return { invoice, message };
-}
+};
 
 describe('upload', () => {
   it('stores the row and its job together', async () => {

@@ -46,19 +46,19 @@ export type AppConfig = z.infer<typeof configSchema>;
 
 export const APP_CONFIG = Symbol('APP_CONFIG');
 
-export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
+export const loadConfig = (env: NodeJS.ProcessEnv = process.env): AppConfig => {
   const result = configSchema.safeParse(env);
   if (!result.success) {
     throw new Error(`Invalid configuration:\n${z.prettifyError(result.error)}`);
   }
   return result.data;
-}
+};
 
 /** Loads `.env` from the working directory if present (Node's built-in loader). */
-export function loadDotEnv(): void {
+export const loadDotEnv = (): void => {
   try {
     process.loadEnvFile();
   } catch {
     // No .env file: rely on the real environment (Docker, hosting platform).
   }
-}
+};

@@ -1,4 +1,4 @@
-export async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+export const withTimeout = async <T>(promise: Promise<T>, ms: number, label: string): Promise<T> => {
   let timer: NodeJS.Timeout | undefined;
   const timeout = new Promise<never>((_, reject) => {
     timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms / 1000}s`)), ms);
@@ -8,4 +8,4 @@ export async function withTimeout<T>(promise: Promise<T>, ms: number, label: str
   } finally {
     clearTimeout(timer);
   }
-}
+};
